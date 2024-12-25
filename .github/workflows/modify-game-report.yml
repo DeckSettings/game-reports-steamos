@@ -81,6 +81,244 @@ jobs:
               console.log(`Issue #${issue.number} already has the correct title; skipping update.`);
             }
 
+  parse-and-update-issue-app-id:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - name: "Assign to project based on app ID"
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
+          script: |
+            const issue = context.payload.issue
+            const body = issue.body || "";
+            const lines = body.split(/\r?\n/);
+
+            const ORG_LOGIN = "DeckSettings"; // The organization name
+
+            function extractHeadingValue(lines, headingRegex) {
+              const headingIndex = lines.findIndex((line) => headingRegex.test(line));
+              if (headingIndex === -1) return null;
+
+              for (let i = headingIndex + 1; i < lines.length; i++) {
+                const currentLine = lines[i].trim();
+                if (!currentLine) continue;
+                if (currentLine.startsWith("###")) {
+                  return null;
+                }
+                return currentLine;
+              }
+              return null;
+            }
+
+            async function checkForExistingAppIdProject(orgNodeId, appIdStr, github) {
+              const query = `
+                query fetchOrgProjects($orgId: ID!) {
+                  node(id: $orgId) {
+                    ... on Organization {
+                      projectsV2(first: 100) {
+                        nodes {
+                          id
+                          title
+                          url
+                        }
+                      }
+                    }
+                  }
+                }
+              `;
+
+              const resp = await github.graphql(query, { orgId: orgNodeId });
+              if (!resp.node || !resp.node.projectsV2) {
+                console.log("No project data returned from org node.");
+                return null;
+              }
+
+              // Look for a project whose 'title' matches 'appIdStr'
+              const existing = resp.node.projectsV2.nodes.find(
+                (proj) => proj.title.trim() === appIdStr
+              );
+              return existing || null;
+            }
+
+            async function createProjectV2(orgNodeId, appIdStr, gameName, github) {
+              // Mutation to create Project V2
+              const createProjectMutation = `
+                mutation createOrgProject($orgId: ID!, $title: String!) {
+                  createProjectV2(input: {title: $title, ownerId: $orgId}) {
+                    projectV2 {
+                      id
+                      title
+                      url
+                    }
+                  }
+                }
+              `;
+
+              const createVars = {
+                orgId: orgNodeId,
+                title: appIdStr,
+              };
+
+              const createResult = await github.graphql(createProjectMutation, createVars);
+              const newProj = createResult.createProjectV2.projectV2;
+              console.log(
+                `Created new Project V2 (#${newProj.id}) titled "${newProj.title}".`
+              );
+              console.log(`URL: ${newProj.url}`);
+              return newProj;
+            }
+
+            async function setProjectShortDescription(projectId, gameName, github) {
+              // Use default if gameName is not provided
+              const shortDescription = gameName || "( Unknown Game Name )";
+
+              // Fetch existing fields in the project to find the "Short description" field
+              const fetchFieldsQuery = `
+                query getProjectFields($projectId: ID!) {
+                  node(id: $projectId) {
+                    ... on ProjectV2 {
+                      fields(first: 100) {
+                        nodes {
+                          id
+                          name
+                          dataType
+                        }
+                      }
+                    }
+                  }
+                }
+              `;
+
+              const fieldsResp = await github.graphql(fetchFieldsQuery, { projectId });
+              if (!fieldsResp.node || !fieldsResp.node.fields) {
+                console.log("No fields found in the project.");
+                return;
+              }
+
+              const shortDescField = fieldsResp.node.fields.nodes.find(
+                (field) => field.name.toLowerCase() === "short description"
+              );
+
+              if (!shortDescField) {
+                console.log(
+                  `No "Short description" field found in Project V2 (#${projectId}).`
+                );
+                return;
+              }
+
+              // Mutation to set the field value
+              const setFieldMutation = `
+                mutation setProjectField($projectId: ID!, $fieldId: ID!, $value: String!) {
+                  updateProjectV2FieldValue(input: {projectId: $projectId, projectV2FieldId: $fieldId, value: {text: $value}}) {
+                    projectV2FieldValue {
+                      id
+                      value
+                    }
+                  }
+                }
+              `;
+
+              const setFieldVars = {
+                projectId,
+                fieldId: shortDescField.id,
+                value: shortDescription,
+              };
+
+              await github.graphql(setFieldMutation, setFieldVars);
+              console.log(
+                `Set "Short description" for Project V2 (#${projectId}) to "${shortDescription}".`
+              );
+            }
+
+            async function addIssueToProjectV2(projectId, issueId, github) {
+              const addItemMutation = `
+                mutation addProjectItem($projectId: ID!, $contentId: ID!) {
+                  addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                    projectV2Item {
+                      id
+                      content {
+                        ... on Issue {
+                          title
+                          url
+                        }
+                      }
+                    }
+                  }
+                }
+              `;
+
+              const addItemVars = {
+                projectId,
+                contentId: issue.node_id, // The Node ID of the issue
+              };
+
+              const addItemResult = await github.graphql(addItemMutation, addItemVars);
+              const newItem = addItemResult.addProjectV2ItemById.projectV2Item;
+              console.log(
+                `Added Issue #${issue.number} to Project V2 (${projectId}): ${newItem.content.url}`
+              );
+            }
+
+            // Parse "Game Name" and "SteamDB App ID"
+            const gameName = extractHeadingValue(lines, /^### Game Name/i);
+            const appIdRaw = extractHeadingValue(lines, /^### SteamDB App ID/i);
+
+            const appIdNum = Number(appIdRaw);
+            if (!appIdRaw || Number.isNaN(appIdNum)) {
+              console.log("No App ID provided in issue body");
+            } else {
+              const appIdStr = String(appIdNum);
+              console.log(`SteamDB App ID detected: ${appIdNum}`);
+              console.log(`Game Name: ${gameName || "( Unknown Game Name )"}`);
+
+              // Fetch the Organization Node ID
+              const orgQuery = `
+                    query getOrgId($login: String!) {
+                      organization(login: $login) {
+                        id
+                      }
+                    }
+                  `;
+              const orgData = await github.graphql(orgQuery, { login: ORG_LOGIN });
+              if (!orgData.organization) {
+                console.log(`Organization "${ORG_LOGIN}" not found or inaccessible.`);
+                return;
+              }
+
+              const orgNodeId = orgData.organization.id;
+              console.log(`Org Node ID for "${ORG_LOGIN}": ${orgNodeId}`);
+
+              // Check if a Project V2 named "appIdStr" exists
+              const existingProject = await checkForExistingAppIdProject(
+                orgNodeId,
+                appIdStr,
+                github
+              );
+              let project = existingProject;
+
+              if (existingProject) {
+                console.log(
+                  `Project V2 "${appIdStr}" already exists at: ${existingProject.url}`
+                );
+              } else {
+                console.log(
+                  `No existing Project V2 named "${appIdStr}". Creating new project...`
+                );
+                project = await createProjectV2(orgNodeId, appIdStr, gameName, github);
+
+                // Set "Short description" field with "gameName"
+                await setProjectShortDescription(project.id, gameName, github);
+              }
+
+              // 5) Add the issue to the project
+              if (project) {
+                await addIssueToProjectV2(project.id, issue.node_id, github);
+              }
+            }
+
   parse-and-update-issue-labels:
     runs-on: ubuntu-latest
     permissions:
