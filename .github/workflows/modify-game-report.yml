@@ -5,433 +5,58 @@ on:
     types: [opened, edited]
 
 jobs:
-  parse-and-update-issue-title:
+  parse-and-update-issue:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       issues: write
     steps:
-      - name: "Set Title from issue body"
-        uses: actions/github-script@v6
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issue = context.payload.issue
-            const body = issue.body || "";
-            const lines = body.split(/\r?\n/);
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "scripts/package-lock.json"
 
-            function extractHeadingValue(lines, headingRegex) {
-              // 1. Find the line index that matches the heading (e.g., "### Game Name").
-              const headingIndex = lines.findIndex((line) => headingRegex.test(line));
-              if (headingIndex === -1) {
-                return null; // The heading was not found at all.
-              }
+      - name: "Install dependencies"
+        working-directory: scripts
+        run: |
+          npm ci
 
-              // 2. Start scanning subsequent lines until we either hit another heading or find a non-empty answer.
-              for (let i = headingIndex + 1; i < lines.length; i++) {
-                const currentLine = lines[i].trim();
+      - name: "Set Title from issue body"
+        working-directory: scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          node update-issue-title.js
 
-                // If it's empty, keep going to skip blank lines.
-                if (!currentLine) {
-                  continue;
-                }
-
-                // If it starts with "###", we've reached the next heading—stop and return null (no answer).
-                if (currentLine.startsWith("###")) {
-                  return null;
-                }
-
-                // Otherwise, this line should be our answer. Return it, stripped of whitespace.
-                return currentLine;
-              }
-
-              // If we run out of lines, we didn’t find any valid answer.
-              return null;
-            }
-
-            // 3) Extract values for Game Name & Target Framerate
-            const gameName = extractHeadingValue(lines, /^### Game Name/);
-            const targetFramerate = extractHeadingValue(lines, /^### Target Framerate/);
-
-            // 4) Fallback if not found
-            const finalGameName = gameName || "Untitled";
-            const finalFramerate = targetFramerate || "Unknown";
-
-            // 5) Build title
-            const newTitle = `${finalGameName} ( ${finalFramerate} )`;
-
-            // 6) Output
-            console.log("Parsed from issue body:");
-            console.log(`  Game Name:        ${finalGameName}`);
-            console.log(`  Target Framerate: ${finalFramerate}`);
-            console.log("\nConstructed Title:");
-            console.log(`  ${newTitle}`);
-
-            // Only update if the new title differs from the current
-            console.log(`Current issue ${issue.number} title ${issue.title}`)
-            if (issue.title !== newTitle) {
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                title: newTitle
-              });
-              console.log(`Issue #${issue.number} title updated to: ${newTitle}`);
-            } else {
-              console.log(`Issue #${issue.number} already has the correct title; skipping update.`);
-            }
-
-  parse-and-update-issue-app-id:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-    steps:
       - name: "Assign to project based on app ID"
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GH_TOKEN }}
-          script: |
-            const issue = context.payload.issue
-            const body = issue.body || "";
-            const lines = body.split(/\r?\n/);
+        working-directory: scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          # Include ORG_LOGIN
+          ORG_LOGIN: "DeckSettings"
+        run: |
+          node assign-projects.js
 
-            const ORG_LOGIN = "DeckSettings"; // The organization name
-
-            function extractHeadingValue(lines, headingRegex) {
-              const headingIndex = lines.findIndex((line) => headingRegex.test(line));
-              if (headingIndex === -1) return null;
-
-              for (let i = headingIndex + 1; i < lines.length; i++) {
-                const currentLine = lines[i].trim();
-                if (!currentLine) continue;
-                if (currentLine.startsWith("###")) {
-                  return null;
-                }
-                return currentLine;
-              }
-              return null;
-            }
-
-            async function checkForExistingAppIdProject(orgNodeId, appIdStr, github) {
-              const query = `
-                query fetchOrgProjects($orgId: ID!) {
-                  node(id: $orgId) {
-                    ... on Organization {
-                      projectsV2(first: 100) {
-                        nodes {
-                          id
-                          title
-                          url
-                        }
-                      }
-                    }
-                  }
-                }
-              `;
-
-              const resp = await github.graphql(query, { orgId: orgNodeId });
-              if (!resp.node || !resp.node.projectsV2) {
-                console.log("No project data returned from org node.");
-                return null;
-              }
-
-              // Look for a project whose 'title' matches 'appIdStr'
-              const existing = resp.node.projectsV2.nodes.find(
-                (proj) => proj.title.trim() === appIdStr
-              );
-              return existing || null;
-            }
-
-            async function createProjectV2(orgNodeId, appIdStr, gameName, github) {
-              // Mutation to create Project V2
-              const createProjectMutation = `
-                mutation createOrgProject($orgId: ID!, $title: String!) {
-                  createProjectV2(input: {title: $title, ownerId: $orgId}) {
-                    projectV2 {
-                      id
-                      title
-                      url
-                    }
-                  }
-                }
-              `;
-
-              const createVars = {
-                orgId: orgNodeId,
-                title: appIdStr,
-              };
-
-              const createResult = await github.graphql(createProjectMutation, createVars);
-              const newProj = createResult.createProjectV2.projectV2;
-              console.log(
-                `Created new Project V2 (#${newProj.id}) titled "${newProj.title}".`
-              );
-              console.log(`URL: ${newProj.url}`);
-              return newProj;
-            }
-
-            async function setProjectShortDescription(projectId, gameName, github) {
-              // Use default if gameName is not provided
-              const shortDescription = gameName || "( Unknown Game Name )";
-
-              // Fetch existing fields in the project to find the "Short description" field
-              const fetchFieldsQuery = `
-                query getProjectFields($projectId: ID!) {
-                  node(id: $projectId) {
-                    ... on ProjectV2 {
-                      fields(first: 100) {
-                        nodes {
-                          id
-                          name
-                          dataType
-                        }
-                      }
-                    }
-                  }
-                }
-              `;
-
-              const fieldsResp = await github.graphql(fetchFieldsQuery, { projectId });
-              if (!fieldsResp.node || !fieldsResp.node.fields) {
-                console.log("No fields found in the project.");
-                return;
-              }
-
-              const shortDescField = fieldsResp.node.fields.nodes.find(
-                (field) => field.name.toLowerCase() === "short description"
-              );
-
-              if (!shortDescField) {
-                console.log(
-                  `No "Short description" field found in Project V2 (#${projectId}).`
-                );
-                return;
-              }
-
-              // Mutation to set the field value
-              const setFieldMutation = `
-                mutation setProjectField($projectId: ID!, $fieldId: ID!, $value: String!) {
-                  updateProjectV2FieldValue(input: {projectId: $projectId, projectV2FieldId: $fieldId, value: {text: $value}}) {
-                    projectV2FieldValue {
-                      id
-                      value
-                    }
-                  }
-                }
-              `;
-
-              const setFieldVars = {
-                projectId,
-                fieldId: shortDescField.id,
-                value: shortDescription,
-              };
-
-              await github.graphql(setFieldMutation, setFieldVars);
-              console.log(
-                `Set "Short description" for Project V2 (#${projectId}) to "${shortDescription}".`
-              );
-            }
-
-            async function addIssueToProjectV2(projectId, issueId, github) {
-              const addItemMutation = `
-                mutation addProjectItem($projectId: ID!, $contentId: ID!) {
-                  addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
-                    projectV2Item {
-                      id
-                      content {
-                        ... on Issue {
-                          title
-                          url
-                        }
-                      }
-                    }
-                  }
-                }
-              `;
-
-              const addItemVars = {
-                projectId,
-                contentId: issue.node_id, // The Node ID of the issue
-              };
-
-              const addItemResult = await github.graphql(addItemMutation, addItemVars);
-              const newItem = addItemResult.addProjectV2ItemById.projectV2Item;
-              console.log(
-                `Added Issue #${issue.number} to Project V2 (${projectId}): ${newItem.content.url}`
-              );
-            }
-
-            // Parse "Game Name" and "SteamDB App ID"
-            const gameName = extractHeadingValue(lines, /^### Game Name/i);
-            const appIdRaw = extractHeadingValue(lines, /^### SteamDB App ID/i);
-
-            const appIdNum = Number(appIdRaw);
-            if (!appIdRaw || Number.isNaN(appIdNum)) {
-              console.log("No App ID provided in issue body");
-            } else {
-              const appIdStr = String(appIdNum);
-              console.log(`SteamDB App ID detected: ${appIdNum}`);
-              console.log(`Game Name: ${gameName || "( Unknown Game Name )"}`);
-
-              // Fetch the Organization Node ID
-              const orgQuery = `
-                    query getOrgId($login: String!) {
-                      organization(login: $login) {
-                        id
-                      }
-                    }
-                  `;
-              const orgData = await github.graphql(orgQuery, { login: ORG_LOGIN });
-              if (!orgData.organization) {
-                console.log(`Organization "${ORG_LOGIN}" not found or inaccessible.`);
-                return;
-              }
-
-              const orgNodeId = orgData.organization.id;
-              console.log(`Org Node ID for "${ORG_LOGIN}": ${orgNodeId}`);
-
-              // Check if a Project V2 named "appIdStr" exists
-              const existingProject = await checkForExistingAppIdProject(
-                orgNodeId,
-                appIdStr,
-                github
-              );
-              let project = existingProject;
-
-              if (existingProject) {
-                console.log(
-                  `Project V2 "${appIdStr}" already exists at: ${existingProject.url}`
-                );
-              } else {
-                console.log(
-                  `No existing Project V2 named "${appIdStr}". Creating new project...`
-                );
-                project = await createProjectV2(orgNodeId, appIdStr, gameName, github);
-
-                // Set "Short description" field with "gameName"
-                await setProjectShortDescription(project.id, gameName, github);
-              }
-
-              // 5) Add the issue to the project
-              if (project) {
-                await addIssueToProjectV2(project.id, issue.node_id, github);
-              }
-            }
-
-  parse-and-update-issue-labels:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-    steps:
-      - name: "Set Title from issue body"
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issue = context.payload.issue
-            const body = issue.body || "";
-            const lines = body.split(/\r?\n/);
-
-            function extractHeadingValue(lines, headingRegex) {
-              // 1. Find the line index that matches the heading (e.g., "### Game Name").
-              const headingIndex = lines.findIndex((line) => headingRegex.test(line));
-              if (headingIndex === -1) {
-                return null; // The heading was not found at all.
-              }
-
-              // 2. Start scanning subsequent lines until we either hit another heading or find a non-empty answer.
-              for (let i = headingIndex + 1; i < lines.length; i++) {
-                const currentLine = lines[i].trim();
-
-                // If it's empty, keep going to skip blank lines.
-                if (!currentLine) {
-                  continue;
-                }
-
-                // If it starts with "###", we've reached the next heading—stop and return null (no answer).
-                if (currentLine.startsWith("###")) {
-                  return null;
-                }
-
-                // Otherwise, this line should be our answer. Return it, stripped of whitespace.
-                return currentLine;
-              }
-
-              // If we run out of lines, we didn’t find any valid answer.
-              return null;
-            }
-
-            async function applyLabel(issue, labelType, labelValue) {
-              let newLabel = `${labelType}:${labelValue}`;
-
-              // Remove any old labels that don't match the new label
-              const existingLabelNames = issue.labels.map((label) => label.name);
-              const labelsToRemove = existingLabelNames.filter(
-                (name) => name.startsWith(`${labelType}:`) && name !== newLabel
-              );
-
-              for (const labelName of labelsToRemove) {
-                console.log(`Removing old label: ${labelName}`);
-                await github.rest.issues.removeLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issue.number,
-                  name: labelName,
-                });
-              }
-              // If we have a newLabel and it's not already on the issue, add it
-              if (newLabel && !existingLabelNames.includes(newLabel)) {
-                console.log(`Adding label: ${newLabel}`);
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issue.number,
-                  labels: [newLabel],
-                });
-              } else if (!newLabel) {
-                console.log(
-                  "No matching label found or specified in issue text. Not adding any label."
-                );
-              } else {
-                console.log(
-                  `Label "${newLabel}" already present on issue #${issue.number}.`
-                );
-              }
-            }
-
-            // Extract device label values
-            const deviceValue = extractHeadingValue(lines, /^### Device/);
-            let newDeviceLabel = null;
-            if (deviceValue) {
-              const lowerDevice = deviceValue.toLowerCase();
-              if (lowerDevice.includes("steam deck")) {
-                newDeviceLabel = "steamdeck";
-              } else if (lowerDevice.includes("ally")) {
-                newDeviceLabel = "rogally";
-              }
-              applyLabel(issue, "device", newDeviceLabel);
-            }
-
-            // Extract launcher label values
-            const launcherValue = extractHeadingValue(lines, /^### Launcher/);
-            let newLauncherLabel = null;
-            if (launcherValue) {
-              const lowerLauncher = launcherValue.toLowerCase();
-              if (lowerLauncher.includes("steam")) {
-                newLauncherLabel = "steam";
-              } else if (lowerLauncher.includes("heroic")) {
-                newLauncherLabel = "heroic";
-              } else if (lowerLauncher.includes("lutris")) {
-                newLauncherLabel = "lutris";
-              } else if (lowerLauncher.includes("bottles")) {
-                newLauncherLabel = "bottles";
-              } else {
-                newLauncherLabel = "other";
-              }
-              applyLabel(issue, "launcher", newLauncherLabel);
-            }
+      - name: "Set labels from issue body"
+        working-directory: scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          node update-issue-labels.js
 
   check-report-for-missing-data:
     runs-on: ubuntu-latest
@@ -439,148 +64,27 @@ jobs:
       contents: write
       issues: write
     steps:
-      - name: "Check report for missing data"
-        uses: actions/github-script@v6
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const requiredSections = [
-              { heading: "Game Name", minLength: 2 },
-              { heading: "Launcher", minLength: 3 },
-              { heading: "Deck Compatibility", minLength: 1 },
-              { heading: "Target Framerate", minLength: 1 },
-              { heading: "Device", minLength: 1 },
-              { heading: "SteamOS Version", minLength: 1 },
-              { heading: "Undervolt Applied", minLength: 1 },
-              { heading: "Steam Play Compatibility Tool Used", minLength: 1 },
-              { heading: "Compatibility Tool Version", minLength: 1 },
-              { heading: "Custom Launch Options", minLength: 1 },
-              { heading: "Frame Limit", minLength: 1 },
-              { heading: "Allow Tearing", minLength: 1 },
-              { heading: "Half Rate Shading", minLength: 1 },
-              { heading: "TDP Limit", minLength: 1 },
-              { heading: "Manual GPU Clock", minLength: 1 },
-              { heading: "Scaling Mode", minLength: 1 },
-              { heading: "Scaling Filter", minLength: 1 },
-              { heading: "Game Display Settings", minLength: 1 },
-              { heading: "Game Graphics Settings", minLength: 1 },
-              { heading: "Additional Notes", minLength: 1 },
-            ];
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "scripts/package-lock.json"
 
-            function extractHeadingValue(lines, heading) {
-              const headingToFind = `### ${heading}`.toLowerCase();
-              const headingIndex = lines.findIndex(
-                (line) => line.trim().toLowerCase() === headingToFind
-              );
-              if (headingIndex === -1) return null;
+      - name: "Install dependencies"
+        working-directory: scripts
+        run: |
+          npm ci
 
-              for (let i = headingIndex + 1; i < lines.length; i++) {
-                const currentLine = lines[i].trim();
-
-                if (currentLine.toLowerCase().startsWith("### ")) {
-                  return null;
-                }
-                if (!currentLine) {
-                  continue;
-                }
-                return currentLine;
-              }
-              return null;
-            }
-
-            async function processIssue(issue, body) {
-              const lines = body.split(/\r?\n/);
-
-              // Validate each required section
-              const errors = [];
-              for (const section of requiredSections) {
-                const extractedValue = extractHeadingValue(lines, section.heading);
-
-                if (extractedValue === null) {
-                  console.error(`❌ Missing or empty section for: "${section.heading}"`);
-                  errors.push(`${section.heading}`);
-                } else if (extractedValue.length < section.minLength) {
-                  console.error(
-                    `❌ Section "${section.heading}" is too short or not valid. Found: "${extractedValue}"`
-                  );
-                  errors.push(`${section.heading}`);
-                } else {
-                  console.log(`✔ "${section.heading}" OK: "${extractedValue}"`);
-                }
-              }
-
-              const incompleteLabel = "invalid:template-incomplete";
-
-              // If there are errors, either label/comment or skip if already labeled
-              if (errors.length > 0) {
-                // Check if this issue already has the "invalid:template-incomplete" label
-                const existingLabels = issue.labels.map((label) => label.name);
-                const hasLabel = existingLabels.includes(incompleteLabel);
-
-                if (!hasLabel) {
-                  // Build a message for the comment
-                  let commentBodyLines = [
-                    "**Validation Failed:** Some required sections are missing or incomplete.",
-                    "",
-                    "Below are the sections that need attention:",
-                  ];
-                  for (const heading of errors) {
-                    commentBodyLines.push(`- Add/Update *${heading}* header`);
-                    commentBodyLines.push("```");
-                    commentBodyLines.push(`### ${heading}`);
-                    commentBodyLines.push(`<${heading} data here>`);
-                    commentBodyLines.push("```");
-                    commentBodyLines.push("");
-                  }
-                  commentBodyLines.push(
-                    "Please edit the issue body adding in all required sections."
-                  );
-                  const commentBody = commentBodyLines.join("\n");
-
-                  // Add the "invalid:template-incomplete" label
-                  await github.rest.issues.addLabels({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number,
-                    labels: [incompleteLabel],
-                  });
-
-                  // Post a comment with details
-                  await github.rest.issues.createComment({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number,
-                    body: commentBody,
-                  });
-                } else {
-                  console.log(
-                    `Issue #${issue.number} already labeled "${incompleteLabel}". Skipping comment.`
-                  );
-                }
-              } else {
-                // If no errors, remove the "invalid:template-incomplete" if it exists
-                console.log("All required sections are present and valid!");
-
-                const existingLabels = issue.labels.map((l) => l.name);
-                if (existingLabels.includes(incompleteLabel)) {
-                  // remove label
-                  // note: we must get the label's "node_id" or name to remove it by name
-                  await github.rest.issues.removeLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number,
-                    name: incompleteLabel,
-                  });
-                  console.log(
-                    `Removed label "${incompleteLabel}" from Issue #${issue.number}.`
-                  );
-                }
-              }
-            }
-
-            const issue = context.payload.issue
-            // Skip PRs or any issue that doesn't have a body
-            if (issue.pull_request) process.exit(0);
-            if (!issue.body) process.exit(0);
-
-            await processIssue(issue, issue.body);
+      - name: "Check report for missing data"
+        working-directory: scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          node check-report-for-missing-data.js
