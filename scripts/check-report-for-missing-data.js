@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 26th December 2024 10:12:53 pm
+ * Last Modified: Friday, 27th December 2024 1:16:12 pm
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -70,8 +70,8 @@ async function processIssue(owner, repo, issue) {
   const existingLabels = issue.labels.map((label) => label.name);
   const hasLabel = existingLabels.includes(incompleteLabel);
 
-  // If errors are present, label and comment
   if (errors.length > 0) {
+    // If errors are present, label and comment
     if (!hasLabel) {
       await addIncompleteLabel(owner, repo, issue.number);
       await postValidationComment(owner, repo, issue.number, errors);
@@ -79,9 +79,11 @@ async function processIssue(owner, repo, issue) {
       console.log(`Issue #${issue.number} already labeled. Skipping.`);
     }
   } else {
+    // Remove labels and validation comments if issue is valid
     if (hasLabel) {
       await removeIncompleteLabel(owner, repo, issue.number);
     }
+    await removeValidationComments(owner, repo, issue.number);
     console.log("All sections are valid.");
   }
 }
@@ -116,6 +118,34 @@ async function postValidationComment(owner, repo, issueNumber, errors) {
     body: commentBody,
   });
   console.log(`Posted validation comment on issue #${issueNumber}`);
+}
+
+// Remove validation comments from the issue
+async function removeValidationComments(owner, repo, issueNumber) {
+  const comments = await octokit.issues.listComments({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+
+  const botComments = comments.data.filter(
+    (comment) =>
+      comment.user.login === "github-actions[bot]" &&
+      comment.body.includes(
+        "**Validation Failed:** Some required sections are missing or incomplete."
+      )
+  );
+
+  for (const comment of botComments) {
+    await octokit.issues.deleteComment({
+      owner,
+      repo,
+      comment_id: comment.id,
+    });
+    console.log(
+      `Deleted validation comment (ID: ${comment.id}) on issue #${issueNumber}`
+    );
+  }
 }
 
 // Remove the "template-incomplete" label
