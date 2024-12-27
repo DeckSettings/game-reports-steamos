@@ -54,7 +54,7 @@ Submitting a game report is quick and easy.
 
 ### 📄 New Report Submission:
 
-👉 [Create a New Game Report](https://github.com/DeckSettings/deck-settings/issues/new?assignees=&labels=&projects=&template=GAME-REPORT.yml&title=%28Placeholder+-+The+title+will+be+automatically+filled+in%29+%3CFULL+GAME+NAME%3E+-+%5B%3CCOMPATIBILITY%3E+-+%3CEXPECTED+FRAMERATE%3E%5D)
+👉 [Create a New Game Report](https://github.com/DeckSettings/deck-settings-db/issues/new?assignees=&labels=&projects=&template=GAME-REPORT.yml&title=%28Placeholder+-+The+title+will+be+automatically+filled+in%29+%3CFULL+GAME+NAME%3E+-+%5B%3CCOMPATIBILITY%3E+-+%3CEXPECTED+FRAMERATE%3E%5D)
 
 Click the link above to generate a new report using our pre-filled template.
 
@@ -90,7 +90,7 @@ This process ensures the database stays organized and that all reports provide t
 
 ## 🔍 How to View Existing Reports
 
-Browse and search submitted game reports by visiting the [Issues Section](https://github.com/DeckSettings/deck-settings/issues).
+Browse and search submitted game reports by visiting the [Issues Section](https://github.com/DeckSettings/deck-settings-db/issues).
 
 - Use the **Labels** and **Projects** filters to narrow down reports by:
   - **Device Type** – Steam Deck, ROG Ally, Lenovo Legion Go, etc.
