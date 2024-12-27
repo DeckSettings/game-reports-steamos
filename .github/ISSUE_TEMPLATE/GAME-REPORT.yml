@@ -23,7 +23,7 @@ body:
     id: game_name
     attributes:
       label: Game Name
-      description: Name of the game for this report. Please use the full name. Copy/past the header out of the SteamDB if possible and include all special characters.
+      description: Name of the game for this report. Please use the full name. Copy/paste the header from SteamDB if possible, and include all special characters.
     validations:
       required: true
   #   > SteamDB App ID
@@ -39,7 +39,7 @@ body:
     id: launcher
     attributes:
       label: Launcher
-      description: The launcher that the game is installed from. If not installed directly from Steam, describe what store it was installed from and what tool was used to install it (Eg. Lutris, Heroic, etc).
+      description: The launcher used to install the game. If the game was not installed directly from Steam, specify the store and the tool used for installation (e.g., Lutris, Heroic, etc.).
       options:
         - Steam
         - Heroic
@@ -106,12 +106,12 @@ body:
     id: device
     attributes:
       label: Device
-      description: What what hardware device is ?
+      description: Which handheld gaming device was used?
       options:
         - Steam Deck LCD (64GB)
         - Steam Deck LCD (256GB/512GB)
         - Steam Deck OLED
-        - ROG Ally Z1 
+        - ROG Ally Z1
         - ROG Ally Z1 Extreme
         - ROG Ally X
       default: 1
@@ -122,7 +122,7 @@ body:
     id: steamos_version
     attributes:
       label: SteamOS Version
-      description: What version of SteamOS are your running?
+      description: "What version of SteamOS are you running? If you are using another Linux distribution (e.g., ChimeraOS, Nobara, Bazzite), include the distro name and version in the format: `<DISTRO>_<VERSION>`, e.g., (`ChimeraOS_46-2`)."
       value: 3.6.20
     validations:
       required: true
@@ -131,7 +131,7 @@ body:
     id: undervolt
     attributes:
       label: Undervolt Applied
-      description: Have you applied any undervolting to your Deck? Specify it in the format CPU/GPU/SOC. Eg, 20/40/20. Leave blank if no undervolting has been applied.
+      description: Have you applied any undervolting to your Deck? Specify it in the format CPU/GPU/SOC (e.g., 20/40/20). Leave blank if no undervolting was applied.
     validations:
       required: false
 
@@ -151,7 +151,7 @@ body:
     id: steam_play_compatibility_tool
     attributes:
       label: Steam Play Compatibility Tool Used
-      description: What Steam Play compatibility tool was used?
+      description: Which Steam Play compatibility tool was used?
       options:
         - Steam Proton
         - Glorious Eggroll Proton (GE)
@@ -165,7 +165,7 @@ body:
     id: steam_play_compatibility_tool_version
     attributes:
       label: Compatibility Tool Version
-      description: What version of the above compatibility tool are your running? Write "latest" if using the default Proton set by Steam.
+      description: What version of the above compatibility tool are you running? Write "latest" if using the default Proton provided by Steam.
     validations:
       required: true
   #   > Launch Options
@@ -276,11 +276,12 @@ body:
     attributes:
       value: |
         Notes on formatting your Display and Graphics settings:
-        - Try to match the format shown in the game.
-        - Use markdown.
-          - Separate each section with a level 4 heading (prefix it with 4 hashes `####`)
-          - Create a list of options with the option name set bold (wrap in double asterisks `**Setting Option Name:**`).
-        - If the game does not separate "Display" or "Graphics" options, then just use the **Display** input field.
+        - Match the format shown in the game as closely as possible.
+        - Use markdown for formatting:
+          - Separate each section with a level 4 heading (prefix with `####`).
+          - List options with bold labels (use double asterisks, e.g., (`**Setting Option Name:**`).
+        - If the game doesn't separate "Display" or "Graphics" options, enter the details under the **Display** section below.
+        - If no "Display" or "Graphics" settings exist, just add the resolution used under the **Display** section below.
 
         Example:
         ```
