@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 3:10:59 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Sunday, 29th December 2024 1:06:04 am
+ * Last Modified: Sunday, 29th December 2024 9:54:52 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -98,13 +98,12 @@ async function checkForExistingProject(orgNodeId, appIdNum, gameName) {
 }
 
 /**
- * Create a new Project V2 in the organization with the given projectTitle and set "Short description".
+ * Create a new Project V2 in the organization with the given projectTitle
  * @param {string} orgNodeId - The Node ID of the organization.
  * @param {string} projectTitle - The App ID as a string.
- * @param {string} gameName - The name of the game.
  * @returns {object} - The newly created project object.
  */
-async function createProjectV2(orgNodeId, projectTitle, gameName) {
+async function createProjectV2(orgNodeId, projectTitle) {
   // Mutation to create Project V2
   const createProjectMutation = `
     mutation createOrgProject($orgId: ID!, $title: String!) {
@@ -142,7 +141,7 @@ async function createProjectV2(orgNodeId, projectTitle, gameName) {
 }
 
 /**
- * Set a "Short description" to the Project V2.
+ * TODD... This function does nothing ATM
  * Uses "( Unknown Game Name )" if gameName is not provided.
  * @param {string} projectId - The Node ID of the project.
  */
@@ -203,10 +202,9 @@ async function setProjectCustomFields(projectId) {
  * Set a "Short description" to the Project V2.
  * @param {string} projectId - The Node ID of the project.
  * @param {string} projectTitle - The App ID as a string.
- * @param {string|null} gameName - The name of the game or null.
+ * @param {string} gameName - The Game Name as a string.
  */
 async function configureProjectData(projectId, projectTitle, gameName) {
-  const shortDescription = gameName || "( Unknown Game Name )";
   try {
     // Mutation to set the field value
     const setFieldMutation = `
@@ -232,13 +230,13 @@ async function configureProjectData(projectId, projectTitle, gameName) {
     const setFieldVars = {
       projectId,
       title: projectTitle,
-      readme: `# [${projectTitle}] \n\n## ${gameName}\n\nThis GitHub project contains a list of all game reports matching this App ID.`,
-      description: shortDescription,
+      readme: `# [${projectTitle}] \n\nThis GitHub project contains a list of all game reports matching this App ID.`,
+      description: gameName,
     };
 
     await graphqlWithAuth(setFieldMutation, setFieldVars);
     console.log(
-      `Set "Short description" for Project V2 (#${projectId}) to "${shortDescription}".`
+      `Set "Short description" for Project V2 (#${projectId}) to "${gameName}".`
     );
   } catch (error) {
     console.error("Error setting 'Short description' field:", error);
@@ -502,7 +500,7 @@ async function run() {
   console.log(`Org Node ID for "${ORG_LOGIN}": ${orgNodeId}`);
 
   // Set the project title
-  const projectTitle = `appid="${appIdNum}" name="${encodedGameName}"`;
+  let projectTitle = `appid="${appIdNum}" name="${encodedGameName}"`;
 
   // Check if a Project V2 named "projectTitle" exists
   let project = await checkForExistingProject(
@@ -513,15 +511,29 @@ async function run() {
 
   if (project) {
     console.log(
-      `Project V2 "${projectTitle}" (ID: ${project.id}) already exists at: ${project.url}`
+      `Project V2 '${projectTitle}' (ID: ${project.id}) already exists at: ${project.url}`
     );
+
+    // Extract appid from the existing project title if it exists
+    const appIdMatch = project.title.match(/appid="(\d+)"/);
+    const existingAppId = appIdMatch ? appIdMatch[1] : null;
+
+    // If an existing appid is found, use it instead of the one from the issue body
+    if (existingAppId) {
+      console.log(
+        `Ensure we keep the existing appid found in current project title: ${existingAppId}`
+      );
+      appIdNum = existingAppId;
+    }
+    projectTitle = `appid="${appIdNum}" name="${encodedGameName}"`;
+
     // Update project data
     await configureProjectData(project.id, projectTitle, gameName);
   } else {
     console.log(
       `No existing Project V2 named "${projectTitle}". Creating new project...`
     );
-    project = await createProjectV2(orgNodeId, projectTitle, gameName);
+    project = await createProjectV2(orgNodeId, projectTitle);
     // Set project data
     await configureProjectData(project.id, projectTitle, gameName);
     // Configure the project's status fields
