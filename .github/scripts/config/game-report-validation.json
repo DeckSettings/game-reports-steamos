@@ -1,0 +1,163 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/game-report.schema.json",
+    "title": "Game Report Validation Schema",
+    "description": "Schema for validating game report submissions",
+    "type": "object",
+    "properties": {
+        "Game Name": {
+            "description": "Full name of the game for this report.",
+            "type": "string",
+            "minLength": 2
+        },
+        "App ID": {
+            "description": "The App ID from SteamDB. Leave blank if not applicable.",
+            "type": "number",
+            "exclusiveMinimum": 0
+        },
+        "Launcher": {
+            "description": "Launcher used to install the game.",
+            "type": "string",
+            "enum": [
+                "Steam",
+                "Heroic",
+                "Lutris",
+                "Bottles",
+                "Other"
+            ]
+        },
+        "Device Compatibility": {
+            "description": "Compatibility of the game with your device.",
+            "type": "string",
+            "enum": [
+                "Verified",
+                "Playable",
+                "Unsupported"
+            ]
+        },
+        "Target Framerate": {
+            "description": "Target framerate for the game.",
+            "type": "string",
+            "enum": [
+                "<30 FPS",
+                "30-39 FPS",
+                "40-49 FPS",
+                "50-59 FPS",
+                "60+ FPS"
+            ]
+        },
+        "Device": {
+            "description": "Handheld gaming device used.",
+            "type": "string",
+            "enum": [
+                "Steam Deck LCD (64GB)",
+                "Steam Deck LCD (256GB/512GB)",
+                "Steam Deck OLED",
+                "ROG Ally Z1",
+                "ROG Ally Z1 Extreme",
+                "ROG Ally X"
+            ]
+        },
+        "OS Version": {
+            "description": "Version of SteamOS or Linux distribution.",
+            "type": "string",
+            "minLength": 1
+        },
+        "Undervolt Applied": {
+            "description": "Undervolt applied (CPU/GPU/SOC) or leave blank if none.",
+            "type": "string"
+        },
+        "Steam Play Compatibility Tool Used": {
+            "description": "Steam Play compatibility tool used.",
+            "type": "string",
+            "enum": [
+                "Steam Proton",
+                "Glorious Eggroll Proton (GE)",
+                "Luxtorpeda",
+                "Boxtron"
+            ]
+        },
+        "Compatibility Tool Version": {
+            "description": "Version of the Steam Play compatibility tool.",
+            "type": "string",
+            "minLength": 1
+        },
+        "Custom Launch Options": {
+            "description": "Custom launch options applied.",
+            "type": "string"
+        },
+        "Frame Limit": {
+            "description": "Frame limit value set, or leave blank.",
+            "type": "number"
+        },
+        "Allow Tearing": {
+            "description": "Enable or disable Allow Tearing.",
+            "type": "string",
+            "enum": [
+                "Enabled",
+                "Disabled"
+            ]
+        },
+        "Half Rate Shading": {
+            "description": "Enable or disable Half Rate Shading.",
+            "type": "string",
+            "enum": [
+                "Enabled",
+                "Disabled"
+            ]
+        },
+        "TDP Limit": {
+            "description": "TDP limit value applied, or leave blank.",
+            "type": "number"
+        },
+        "Manual GPU Clock": {
+            "description": "Manual GPU clock applied, or leave blank.",
+            "type": "number"
+        },
+        "Scaling Mode": {
+            "description": "Scaling mode applied.",
+            "type": "string",
+            "enum": [
+                "Auto",
+                "Integer",
+                "Fit",
+                "Stretch",
+                "Fill"
+            ]
+        },
+        "Scaling Filter": {
+            "description": "Scaling filter applied.",
+            "type": "string",
+            "enum": [
+                "Linear",
+                "Pixel",
+                "FSR",
+                "NIS"
+            ]
+        },
+        "Game Display Settings": {
+            "description": "Display settings used in-game.",
+            "type": "string",
+            "minLength": 1
+        },
+        "Game Graphics Settings": {
+            "description": "Graphics settings used in-game.",
+            "type": "string"
+        },
+        "Additional Notes": {
+            "description": "Additional notes about the game.",
+            "type": "string"
+        }
+    },
+    "required": [
+        "Game Name",
+        "Launcher",
+        "Device Compatibility",
+        "Target Framerate",
+        "Device",
+        "OS Version",
+        "Steam Play Compatibility Tool Used",
+        "Compatibility Tool Version",
+        "Game Display Settings"
+    ]
+}

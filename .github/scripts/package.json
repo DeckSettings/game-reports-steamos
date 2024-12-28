@@ -13,6 +13,9 @@
     "dependencies": {
         "@octokit/graphql": "^8.1.1",
         "@octokit/rest": "^21.0.2",
+        "ajv": "^8.17.1",
+        "ajv-draft-04": "^1.0.0",
+        "ajv-formats": "^3.0.1",
         "dotenv": "^16.4.7"
     }
 }

@@ -4,12 +4,16 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Sunday, 29th December 2024 12:57:13 am
+ * Last Modified: Sunday, 29th December 2024 11:33:44 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
 import { Octokit } from "@octokit/rest";
+import Ajv from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import { extractHeadingValue } from "./common.js";
+import fs from "fs";
+import path from "path";
 import dotenv from "dotenv";
 
 dotenv.config(); // Load environment variables from .env for local testing
@@ -19,135 +23,24 @@ const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
 
-// Required sections for issue validation
-const requiredSections = [
-  {
-    heading: "Game Name",
-    required: true,
-    type: "string",
-    minLength: 2,
-  },
-  {
-    heading: "App ID",
-    required: false,
-    type: "number",
-    minLength: 1,
-  },
-  {
-    heading: "Launcher",
-    required: true,
-    type: "string",
-    minLength: 3,
-  },
-  {
-    heading: "Device Compatibility",
-    required: true,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Target Framerate",
-    required: true,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Device",
-    required: true,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "OS Version",
-    required: true,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Undervolt Applied",
-    required: false,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Steam Play Compatibility Tool Used",
-    required: true,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Compatibility Tool Version",
-    required: true,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Custom Launch Options",
-    required: false,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Frame Limit",
-    required: false,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Allow Tearing",
-    required: false,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Half Rate Shading",
-    required: false,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "TDP Limit",
-    required: false,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Manual GPU Clock",
-    required: false,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Scaling Mode",
-    required: true,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Scaling Filter",
-    required: true,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Game Display Settings",
-    required: true,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Game Graphics Settings",
-    required: false,
-    type: "string",
-    minLength: 1,
-  },
-  {
-    heading: "Additional Notes",
-    required: false,
-    type: "string",
-    minLength: 1,
-  },
-];
+// Initialize AJV for schema validation
+const ajv = new Ajv({ allErrors: true, strict: false });
+addFormats(ajv);
+
+// Read JSON schema
+let validate;
+try {
+  const configPath = path.resolve(
+    path.dirname(new URL(import.meta.url).pathname),
+    "config/game-report-validation.json"
+  );
+  const schema = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  validate = ajv.compile(schema); // Compile schema for validation
+  console.log("Loaded validation schema from JSON.");
+} catch (error) {
+  console.error("Failed to load validation schema:", error);
+  process.exit(1);
+}
 
 // Label for incomplete templates
 const incompleteLabel = "invalid:template-incomplete";
@@ -157,52 +50,58 @@ async function processIssue(owner, repo, issue) {
   const body = issue.body || "";
   const lines = body.split(/\r?\n/);
 
-  const errors = [];
-  for (const section of requiredSections) {
-    const extractedValue = extractHeadingValue(lines, section.heading);
-    if (extractedValue === null || extractedValue === "_No response_") {
-      if (section.required) {
-        console.error(`❌ Missing: "${section.heading}"`);
-        errors.push(section.heading);
-      } else {
-        console.warn(
-          `❕ Missing: "${section.heading}" but it is not required.`
-        );
+  // Build object based on extracted values
+  const reportData = {};
+  for (const [key, value] of Object.entries(validate.schema.properties)) {
+    let extractedValue = extractHeadingValue(lines, key);
+
+    // Skip adding to reportData if "_No response_"
+    if (extractedValue === "_No response_") {
+      continue;
+    }
+    // Convert to number if schema expects a number
+    if (value.type === "number" && extractedValue) {
+      const parsedValue = Number(extractedValue);
+      extractedValue = isNaN(parsedValue) ? extractedValue : parsedValue;
+    }
+    // Add to reportData object
+    reportData[key] = extractedValue;
+  }
+
+  // Perform schema validation
+  const valid = validate(reportData);
+  if (!valid) {
+    const errors = validate.errors.map((err) => {
+      const field = err.instancePath.slice(1) || err.params.missingProperty;
+
+      // Include allowed values in the error message if available
+      let errorMessage = `${field}: ${err.message}`;
+      if (err.keyword === "enum" && err.params.allowedValues) {
+        errorMessage += ` (${err.params.allowedValues.join(", ")})`;
       }
-    } else if (extractedValue.length < section.minLength) {
-      console.error(
-        `❌ "${section.heading}" is too short. Found: "${extractedValue}"`
-      );
-      errors.push(section.heading);
-    } else if (section.type === "number" && isNaN(Number(extractedValue))) {
-      console.error(
-        `❌ "${section.heading}" should be a number. Found: "${extractedValue}"`
-      );
-      errors.push(section.heading);
-    } else {
-      console.log(`✔ "${section.heading}" OK: "${extractedValue}"`);
-    }
-  }
 
-  const existingLabels = issue.labels.map((label) => label.name);
-  const hasLabel = existingLabels.includes(incompleteLabel);
-
-  if (errors.length > 0) {
-    // If errors are present, label and comment
-    if (!hasLabel) {
-      await addIncompleteLabel(owner, repo, issue.number);
-      await postValidationComment(owner, repo, issue.number, errors);
-    } else {
-      console.log(`Issue #${issue.number} already labeled. Skipping.`);
-    }
+      return errorMessage;
+    });
+    console.error("❌ Validation errors:", errors);
+    await handleValidationFailure(owner, repo, issue.number, errors);
   } else {
-    // Remove labels and validation comments if issue is valid
-    if (hasLabel) {
-      await removeIncompleteLabel(owner, repo, issue.number);
-    }
+    console.log("✔ Issue passes schema validation.");
     await removeValidationComments(owner, repo, issue.number);
-    console.log("All sections are valid.");
+    await removeIncompleteLabel(owner, repo, issue.number);
   }
+}
+
+// Handle validation failures (add label and comment)
+async function handleValidationFailure(owner, repo, issueNumber, errors) {
+  const existingLabels = (
+    await octokit.issues.get({ owner, repo, issue_number: issueNumber })
+  ).data.labels.map((label) => label.name);
+
+  if (!existingLabels.includes(incompleteLabel)) {
+    await addIncompleteLabel(owner, repo, issueNumber);
+  }
+
+  await postValidationComment(owner, repo, issueNumber, errors);
 }
 
 // Add the "template-incomplete" label
@@ -221,10 +120,7 @@ async function postValidationComment(owner, repo, issueNumber, errors) {
   const commentBody = [
     "**Validation Failed:** Some required sections are missing or incomplete.\n",
     "### Sections to fix:",
-    ...errors.map(
-      (heading) =>
-        `- Add/Update **${heading}** section:\n\`\`\`\n### ${heading}\n<${heading} data here>\n\`\`\`\n`
-    ),
+    ...errors.map((error) => `- ${error}\n`),
     "Please edit the issue to include all required sections.",
   ].join("\n");
 
@@ -234,7 +130,8 @@ async function postValidationComment(owner, repo, issueNumber, errors) {
     issue_number: issueNumber,
     body: commentBody,
   });
-  console.log(`Posted validation comment on issue #${issueNumber}`);
+  console.log(`Posted validation comment on issue #${issueNumber}:`);
+  console.log(commentBody);
 }
 
 // Remove validation comments from the issue
@@ -248,9 +145,7 @@ async function removeValidationComments(owner, repo, issueNumber) {
   const botComments = comments.data.filter(
     (comment) =>
       comment.user.login === "github-actions[bot]" &&
-      comment.body.includes(
-        "**Validation Failed:** Some required sections are missing or incomplete."
-      )
+      comment.body.includes("**Validation Failed:**")
   );
 
   for (const comment of botComments) {
@@ -267,13 +162,19 @@ async function removeValidationComments(owner, repo, issueNumber) {
 
 // Remove the "template-incomplete" label
 async function removeIncompleteLabel(owner, repo, issueNumber) {
-  await octokit.issues.removeLabel({
-    owner,
-    repo,
-    issue_number: issueNumber,
-    name: incompleteLabel,
-  });
-  console.log(`Removed label "${incompleteLabel}" from issue #${issueNumber}`);
+  try {
+    await octokit.issues.removeLabel({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      name: incompleteLabel,
+    });
+    console.log(
+      `Removed label "${incompleteLabel}" from issue #${issueNumber}`
+    );
+  } catch (error) {
+    console.log(`Label not present on issue #${issueNumber}`);
+  }
 }
 
 // Main entry point

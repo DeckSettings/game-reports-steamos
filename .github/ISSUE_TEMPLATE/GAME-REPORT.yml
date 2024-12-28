@@ -194,7 +194,7 @@ body:
     id: frame_limit
     attributes:
       label: Frame Limit
-      description: If you applied a frame limit value, what value did you set? Leave blank if no frame limit was set.
+      description: If you applied a frame limit value, what value did you set? Write only the number without any unit of measure. Leave blank if no frame limit was set.
     validations:
       required: false
   #   > Allow Tearing
@@ -226,7 +226,7 @@ body:
     id: tdp_limit
     attributes:
       label: TDP Limit
-      description: If you applied a TDP limit value, what value did you set? Leave blank if no TDP limit was set.
+      description: If you applied a TDP limit value, what value did you set? Write only the number without any unit of measure. Leave blank if no TDP limit was set.
     validations:
       required: false
   #   > Manual GPU Clock
@@ -234,7 +234,7 @@ body:
     id: manual_gpu_clock
     attributes:
       label: Manual GPU Clock
-      description: If you applied a manual GPU clock value, what value did you set? Leave blank if no manual GPU clock was set.
+      description: If you applied a manual GPU clock value, what value did you set? Write only the number without any unit of measure. Leave blank if no manual GPU clock was set.
     validations:
       required: false
   #   > Scaling Mode
