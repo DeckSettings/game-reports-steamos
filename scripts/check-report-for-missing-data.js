@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Sunday, 29th December 2024 12:48:13 am
+ * Last Modified: Sunday, 29th December 2024 12:57:13 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -28,7 +28,7 @@ const requiredSections = [
     minLength: 2,
   },
   {
-    heading: "SteamDB App ID",
+    heading: "App ID",
     required: false,
     type: "number",
     minLength: 1,
@@ -40,7 +40,7 @@ const requiredSections = [
     minLength: 3,
   },
   {
-    heading: "Deck Compatibility",
+    heading: "Device Compatibility",
     required: true,
     type: "string",
     minLength: 1,
@@ -58,14 +58,14 @@ const requiredSections = [
     minLength: 1,
   },
   {
-    heading: "SteamOS Version",
+    heading: "OS Version",
     required: true,
     type: "string",
     minLength: 1,
   },
   {
     heading: "Undervolt Applied",
-    required: true,
+    required: false,
     type: "string",
     minLength: 1,
   },
@@ -83,37 +83,37 @@ const requiredSections = [
   },
   {
     heading: "Custom Launch Options",
-    required: true,
+    required: false,
     type: "string",
     minLength: 1,
   },
   {
     heading: "Frame Limit",
-    required: true,
+    required: false,
     type: "string",
     minLength: 1,
   },
   {
     heading: "Allow Tearing",
-    required: true,
+    required: false,
     type: "string",
     minLength: 1,
   },
   {
     heading: "Half Rate Shading",
-    required: true,
+    required: false,
     type: "string",
     minLength: 1,
   },
   {
     heading: "TDP Limit",
-    required: true,
+    required: false,
     type: "string",
     minLength: 1,
   },
   {
     heading: "Manual GPU Clock",
-    required: true,
+    required: false,
     type: "string",
     minLength: 1,
   },
@@ -137,13 +137,13 @@ const requiredSections = [
   },
   {
     heading: "Game Graphics Settings",
-    required: true,
+    required: false,
     type: "string",
     minLength: 1,
   },
   {
     heading: "Additional Notes",
-    required: true,
+    required: false,
     type: "string",
     minLength: 1,
   },

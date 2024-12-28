@@ -26,11 +26,11 @@ body:
       description: Name of the game for this report. Please use the full name. Copy/paste the header from SteamDB if possible, and include all special characters.
     validations:
       required: true
-  #   > SteamDB App ID
+  #   > App ID
   - type: input
     id: app_id
     attributes:
-      label: SteamDB App ID
+      label: App ID
       description: The App ID from SteamDB (https://steamdb.info/). Leave blank if not applicable.
     validations:
       required: false
@@ -63,10 +63,10 @@ body:
         <br/>
   #   > Deck compatibility
   - type: dropdown
-    id: deck_compatibility
+    id: device_compatibility
     attributes:
-      label: Deck Compatibility
-      description: What was your experience with this game's compatibility with the Steam Deck?
+      label: Device Compatibility
+      description: What was your experience with this game's compatibility with your Device?
       options:
         - Verified
         - Playable
@@ -117,11 +117,11 @@ body:
       default: 1
     validations:
       required: true
-  #   > SteamOS Version
+  #   > OS Version
   - type: input
-    id: steamos_version
+    id: os_version
     attributes:
-      label: SteamOS Version
+      label: OS Version
       description: "What version of SteamOS are you running? If you are using another Linux distribution (e.g., ChimeraOS, Nobara, Bazzite), include the distro name and version in the format: `<DISTRO>_<VERSION>`, e.g., (`ChimeraOS_46-2`)."
       value: 3.6.20
     validations:
@@ -245,7 +245,7 @@ body:
         - Fill
       default: 0
     validations:
-      required: false
+      required: true
   #   > Scaling Filter
   - type: dropdown
     id: scaling_filter
@@ -259,7 +259,7 @@ body:
         - NIS
       default: 0
     validations:
-      required: false
+      required: true
 
   # -- IN-GAME SETTINGS --
   - type: markdown

@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 3:10:59 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Saturday, 28th December 2024 9:43:48 pm
+ * Last Modified: Sunday, 29th December 2024 12:53:52 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -462,8 +462,8 @@ async function run() {
   const body = issue.body || "";
   const lines = body.split(/\r?\n/);
 
-  // Parse "Game Name" and "SteamDB App ID"
-  const appIdRaw = extractHeadingValue(lines, "SteamDB App ID");
+  // Parse "Game Name" and "App ID"
+  const appIdRaw = extractHeadingValue(lines, "App ID");
   const gameName = extractHeadingValue(lines, "Game Name");
 
   const appIdNum = Number(appIdRaw);
@@ -477,7 +477,7 @@ async function run() {
   }
   const encodedGameName = encodeURIComponent(gameName);
 
-  console.log(`SteamDB App ID detected: ${appIdNum}`);
+  console.log(`App ID detected: ${appIdNum}`);
   console.log(`Game Name: ${gameName}`);
 
   // Fetch the Organization Node ID

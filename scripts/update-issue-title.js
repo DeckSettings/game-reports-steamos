@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 2:56:33 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Sunday, 29th December 2024 12:51:27 am
+ * Last Modified: Sunday, 29th December 2024 12:53:56 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -44,7 +44,7 @@ async function run() {
     // Extract values for "Game Name" and "Target Framerate"
     const gameName = extractHeadingValue(lines, "Game Name");
     const targetFramerate = extractHeadingValue(lines, "Target Framerate");
-    const appIdRaw = extractHeadingValue(lines, "SteamDB App ID");
+    const appIdRaw = extractHeadingValue(lines, "App ID");
 
     // Check that gameName and targetFramerate exists. If not, then the issue will be marked as having an error. Lets quit this job
     if (!gameName) {
