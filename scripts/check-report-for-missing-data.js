@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Friday, 27th December 2024 1:16:12 pm
+ * Last Modified: Sunday, 29th December 2024 12:48:13 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -21,26 +21,132 @@ const octokit = new Octokit({
 
 // Required sections for issue validation
 const requiredSections = [
-  { heading: "Game Name", minLength: 2 },
-  { heading: "Launcher", minLength: 3 },
-  { heading: "Deck Compatibility", minLength: 1 },
-  { heading: "Target Framerate", minLength: 1 },
-  { heading: "Device", minLength: 1 },
-  { heading: "SteamOS Version", minLength: 1 },
-  { heading: "Undervolt Applied", minLength: 1 },
-  { heading: "Steam Play Compatibility Tool Used", minLength: 1 },
-  { heading: "Compatibility Tool Version", minLength: 1 },
-  { heading: "Custom Launch Options", minLength: 1 },
-  { heading: "Frame Limit", minLength: 1 },
-  { heading: "Allow Tearing", minLength: 1 },
-  { heading: "Half Rate Shading", minLength: 1 },
-  { heading: "TDP Limit", minLength: 1 },
-  { heading: "Manual GPU Clock", minLength: 1 },
-  { heading: "Scaling Mode", minLength: 1 },
-  { heading: "Scaling Filter", minLength: 1 },
-  { heading: "Game Display Settings", minLength: 1 },
-  { heading: "Game Graphics Settings", minLength: 1 },
-  { heading: "Additional Notes", minLength: 1 },
+  {
+    heading: "Game Name",
+    required: true,
+    type: "string",
+    minLength: 2,
+  },
+  {
+    heading: "SteamDB App ID",
+    required: false,
+    type: "number",
+    minLength: 1,
+  },
+  {
+    heading: "Launcher",
+    required: true,
+    type: "string",
+    minLength: 3,
+  },
+  {
+    heading: "Deck Compatibility",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Target Framerate",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Device",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "SteamOS Version",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Undervolt Applied",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Steam Play Compatibility Tool Used",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Compatibility Tool Version",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Custom Launch Options",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Frame Limit",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Allow Tearing",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Half Rate Shading",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "TDP Limit",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Manual GPU Clock",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Scaling Mode",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Scaling Filter",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Game Display Settings",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Game Graphics Settings",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
+  {
+    heading: "Additional Notes",
+    required: true,
+    type: "string",
+    minLength: 1,
+  },
 ];
 
 // Label for incomplete templates
@@ -54,12 +160,23 @@ async function processIssue(owner, repo, issue) {
   const errors = [];
   for (const section of requiredSections) {
     const extractedValue = extractHeadingValue(lines, section.heading);
-    if (extractedValue === null) {
-      console.error(`❌ Missing: "${section.heading}"`);
-      errors.push(section.heading);
+    if (extractedValue === null || extractedValue === "_No response_") {
+      if (section.required) {
+        console.error(`❌ Missing: "${section.heading}"`);
+        errors.push(section.heading);
+      } else {
+        console.warn(
+          `❕ Missing: "${section.heading}" but it is not required.`
+        );
+      }
     } else if (extractedValue.length < section.minLength) {
       console.error(
         `❌ "${section.heading}" is too short. Found: "${extractedValue}"`
+      );
+      errors.push(section.heading);
+    } else if (section.type === "number" && isNaN(Number(extractedValue))) {
+      console.error(
+        `❌ "${section.heading}" should be a number. Found: "${extractedValue}"`
       );
       errors.push(section.heading);
     } else {
