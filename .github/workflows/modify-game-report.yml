@@ -19,15 +19,15 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
-          cache-dependency-path: "scripts/package-lock.json"
+          cache-dependency-path: ".github/scripts/package-lock.json"
 
       - name: "Install dependencies"
-        working-directory: scripts
+        working-directory: .github/scripts
         run: |
           npm ci
 
       - name: "Set Title from issue body"
-        working-directory: scripts
+        working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -37,7 +37,7 @@ jobs:
           node update-issue-title.js
 
       - name: "Assign to project based on app ID"
-        working-directory: scripts
+        working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -49,7 +49,7 @@ jobs:
           node assign-projects.js
 
       - name: "Set labels from issue body"
-        working-directory: scripts
+        working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -72,15 +72,15 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
-          cache-dependency-path: "scripts/package-lock.json"
+          cache-dependency-path: ".github/scripts/package-lock.json"
 
       - name: "Install dependencies"
-        working-directory: scripts
+        working-directory: .github/scripts
         run: |
           npm ci
 
       - name: "Check report for missing data"
-        working-directory: scripts
+        working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
