@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 3:10:59 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Sunday, 29th December 2024 12:53:52 am
+ * Last Modified: Sunday, 29th December 2024 1:06:04 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -77,10 +77,7 @@ async function checkForExistingProject(orgNodeId, appIdNum, gameName) {
 
       // Look for a project whose 'title' includes appid OR name
       existing = resp.node.projectsV2.nodes.find((proj) => {
-        if (
-          appIdNum !== undefined &&
-          proj.title.includes(`appid="${appIdNum}"`)
-        ) {
+        if (appIdNum !== "" && proj.title.includes(`appid="${appIdNum}"`)) {
           return true; // Found by appid
         }
         if (gameName && proj.title.includes(`name="${gameName}"`)) {
@@ -463,13 +460,13 @@ async function run() {
   const lines = body.split(/\r?\n/);
 
   // Parse "Game Name" and "App ID"
-  const appIdRaw = extractHeadingValue(lines, "App ID");
   const gameName = extractHeadingValue(lines, "Game Name");
+  const appIdRaw = extractHeadingValue(lines, "App ID");
 
-  const appIdNum = Number(appIdRaw);
+  let appIdNum = Number(appIdRaw);
   if (!appIdRaw || Number.isNaN(appIdNum)) {
     console.log("No App ID provided in issue body");
-    appIdNum = undefined; // Set appIdNum to undefined
+    appIdNum = ""; // Set appIdNum to an empty string
     if (!gameName) {
       console.log("No game name provided in issue body either");
       return; // End script here
@@ -505,10 +502,7 @@ async function run() {
   console.log(`Org Node ID for "${ORG_LOGIN}": ${orgNodeId}`);
 
   // Set the project title
-  let projectTitle = `name="${encodedGameName}"`;
-  if (appIdNum) {
-    projectTitle = `appid="${appIdNum}" name="${encodedGameName}"`;
-  }
+  const projectTitle = `appid="${appIdNum}" name="${encodedGameName}"`;
 
   // Check if a Project V2 named "projectTitle" exists
   let project = await checkForExistingProject(

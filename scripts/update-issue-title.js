@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 2:56:33 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Sunday, 29th December 2024 12:53:56 am
+ * Last Modified: Sunday, 29th December 2024 1:07:35 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -44,7 +44,7 @@ async function run() {
     // Extract values for "Game Name" and "Target Framerate"
     const gameName = extractHeadingValue(lines, "Game Name");
     const targetFramerate = extractHeadingValue(lines, "Target Framerate");
-    const appIdRaw = extractHeadingValue(lines, "App ID");
+    let appIdRaw = extractHeadingValue(lines, "App ID");
 
     // Check that gameName and targetFramerate exists. If not, then the issue will be marked as having an error. Lets quit this job
     if (!gameName) {
@@ -60,16 +60,15 @@ async function run() {
     if (appIdRaw == "_No response_") {
       appIdRaw = "";
     }
-    const appIdNum = Number(appIdRaw);
-    if (!appIdRaw || Number.isNaN(appIdNum)) {
+    if (!appIdRaw || isNaN(Number(appIdRaw))) {
       console.log(
         "No App ID provided in issue body, or App ID provided is not a number"
       );
-      appIdNum = ""; // Set appIdNum to and empty string
+      appIdRaw = ""; // Set appIdRaw to and empty string
     }
 
     // Construct the new title
-    const newTitle = `name="${gameName}" appid="${appIdNum}" target_framerate="${targetFramerate}"`;
+    const newTitle = `name="${gameName}" appid="${appIdRaw}" target_framerate="${targetFramerate}"`;
     console.log("Parsed from issue body:");
     console.log(`  Game Name: ${gameName}`);
     console.log(`  Target Framerate: ${targetFramerate}`);
