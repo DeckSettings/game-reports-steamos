@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 3:10:59 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Sunday, 29th December 2024 9:54:52 am
+ * Last Modified: Sunday, 29th December 2024 12:13:05 pm
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -470,7 +470,6 @@ async function run() {
       return; // End script here
     }
   }
-  const encodedGameName = encodeURIComponent(gameName);
 
   console.log(`App ID detected: ${appIdNum}`);
   console.log(`Game Name: ${gameName}`);
@@ -500,14 +499,10 @@ async function run() {
   console.log(`Org Node ID for "${ORG_LOGIN}": ${orgNodeId}`);
 
   // Set the project title
-  let projectTitle = `appid="${appIdNum}" name="${encodedGameName}"`;
+  let projectTitle = `appid="${appIdNum}" name="${gameName}"`;
 
   // Check if a Project V2 named "projectTitle" exists
-  let project = await checkForExistingProject(
-    orgNodeId,
-    appIdNum,
-    encodedGameName
-  );
+  let project = await checkForExistingProject(orgNodeId, appIdNum, gameName);
 
   if (project) {
     console.log(
@@ -525,7 +520,7 @@ async function run() {
       );
       appIdNum = existingAppId;
     }
-    projectTitle = `appid="${appIdNum}" name="${encodedGameName}"`;
+    projectTitle = `appid="${appIdNum}" name="${gameName}"`;
 
     // Update project data
     await configureProjectData(project.id, projectTitle, gameName);
