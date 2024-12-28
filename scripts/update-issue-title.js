@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 2:56:33 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 26th December 2024 10:17:39 pm
+ * Last Modified: Sunday, 29th December 2024 12:51:27 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -44,16 +44,35 @@ async function run() {
     // Extract values for "Game Name" and "Target Framerate"
     const gameName = extractHeadingValue(lines, "Game Name");
     const targetFramerate = extractHeadingValue(lines, "Target Framerate");
+    const appIdRaw = extractHeadingValue(lines, "SteamDB App ID");
 
-    // Fallback values if not found
-    const finalGameName = gameName || "Untitled";
-    const finalFramerate = targetFramerate || "Unknown";
+    // Check that gameName and targetFramerate exists. If not, then the issue will be marked as having an error. Lets quit this job
+    if (!gameName) {
+      console.log("No Game Name provided in issue body");
+      return;
+    }
+    if (!targetFramerate) {
+      console.log("No Target Framerate provided in issue body");
+      return;
+    }
+
+    // If we have an appId and it is a number (will be '_No response_' if nothing was submitted) then we will add it, otherwise this will be an empty value
+    if (appIdRaw == "_No response_") {
+      appIdRaw = "";
+    }
+    const appIdNum = Number(appIdRaw);
+    if (!appIdRaw || Number.isNaN(appIdNum)) {
+      console.log(
+        "No App ID provided in issue body, or App ID provided is not a number"
+      );
+      appIdNum = ""; // Set appIdNum to and empty string
+    }
 
     // Construct the new title
-    const newTitle = `${finalGameName} ( ${finalFramerate} )`;
+    const newTitle = `name="${gameName}" appid="${appIdNum}" target_framerate="${targetFramerate}"`;
     console.log("Parsed from issue body:");
-    console.log(`  Game Name: ${finalGameName}`);
-    console.log(`  Target Framerate: ${finalFramerate}`);
+    console.log(`  Game Name: ${gameName}`);
+    console.log(`  Target Framerate: ${targetFramerate}`);
     console.log("Constructed Title:");
     console.log(`  ${newTitle}`);
     console.log(`Current issue #${issue.number} title: "${issue.title}"`);
