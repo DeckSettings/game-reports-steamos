@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 3:10:59 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 26th December 2024 10:17:03 pm
+ * Last Modified: Saturday, 28th December 2024 9:43:48 pm
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -31,40 +31,69 @@ const graphqlWithAuth = graphql.defaults({
 });
 
 /**
- * Check if a Project V2 named 'projectTitle' already exists in the given org.
+ * Check if a Project V2 with the given app ID or game name already exists in the org.
  * @param {string} orgNodeId - The Node ID of the organization.
- * @param {string} projectTitle - The App ID as a string.
+ * @param {number} [appIdNum] - The App ID as a number (optional).
+ * @param {string} [gameName] - The name of the game (optional).
  * @returns {object|null} - The existing project object or null.
  */
-async function checkForExistingAppIdProject(orgNodeId, projectTitle) {
+async function checkForExistingProject(orgNodeId, appIdNum, gameName) {
   const query = `
-    query fetchOrgProjects($orgId: ID!) {
-      node(id: $orgId) {
-        ... on Organization {
-          projectsV2(first: 100) {
-            nodes {
-              id
-              title
-              url
+      query fetchOrgProjects($orgId: ID!, $cursor: String) {
+        node(id: $orgId) {
+          ... on Organization {
+            projectsV2(first: 100, after: $cursor) {
+              nodes {
+                id
+                title
+                url
+              }
+              pageInfo {
+                endCursor
+                hasNextPage
+              }
             }
           }
         }
       }
-    }
-  `;
+    `;
 
   try {
-    const resp = await graphqlWithAuth(query, { orgId: orgNodeId });
-    if (!resp.node || !resp.node.projectsV2) {
-      console.log("No project data returned from org node.");
-      return null;
+    let hasNextPage = true;
+    let endCursor = null;
+    let existing = null;
+
+    while (hasNextPage && !existing) {
+      // Exit loop if project is found
+      const resp = await graphqlWithAuth(query, {
+        orgId: orgNodeId,
+        cursor: endCursor,
+      });
+
+      if (!resp.node || !resp.node.projectsV2) {
+        console.log("No project data returned from org node.");
+        return null;
+      }
+
+      // Look for a project whose 'title' includes appid OR name
+      existing = resp.node.projectsV2.nodes.find((proj) => {
+        if (
+          appIdNum !== undefined &&
+          proj.title.includes(`appid="${appIdNum}"`)
+        ) {
+          return true; // Found by appid
+        }
+        if (gameName && proj.title.includes(`name="${gameName}"`)) {
+          return true; // Found by gameName
+        }
+        return false; // Not found
+      });
+
+      hasNextPage = resp.node.projectsV2.pageInfo.hasNextPage;
+      endCursor = resp.node.projectsV2.pageInfo.endCursor;
     }
 
-    // Look for a project whose 'title' matches 'projectTitle'
-    const existing = resp.node.projectsV2.nodes.find(
-      (proj) => proj.title.trim() === projectTitle
-    );
-    return existing || null;
+    return existing; // No matching project found
   } catch (error) {
     console.error("Error fetching organization projects:", error);
     throw error;
@@ -175,12 +204,11 @@ async function setProjectCustomFields(projectId) {
 
 /**
  * Set a "Short description" to the Project V2.
- * Uses "( Unknown Game Name )" if gameName is not provided.
  * @param {string} projectId - The Node ID of the project.
  * @param {string} projectTitle - The App ID as a string.
  * @param {string|null} gameName - The name of the game or null.
  */
-async function setProjectShortDescription(projectId, projectTitle, gameName) {
+async function configureProjectData(projectId, projectTitle, gameName) {
   const shortDescription = gameName || "( Unknown Game Name )";
   try {
     // Mutation to set the field value
@@ -207,7 +235,7 @@ async function setProjectShortDescription(projectId, projectTitle, gameName) {
     const setFieldVars = {
       projectId,
       title: projectTitle,
-      readme: `# [${projectTitle}] ${gameName}\n\nThis GitHub project contains a list of all game reports matching this App ID.`,
+      readme: `# [${projectTitle}] \n\n## ${gameName}\n\nThis GitHub project contains a list of all game reports matching this App ID.`,
       description: shortDescription,
     };
 
@@ -435,17 +463,22 @@ async function run() {
   const lines = body.split(/\r?\n/);
 
   // Parse "Game Name" and "SteamDB App ID"
-  const gameName = extractHeadingValue(lines, "Game Name");
   const appIdRaw = extractHeadingValue(lines, "SteamDB App ID");
+  const gameName = extractHeadingValue(lines, "Game Name");
 
   const appIdNum = Number(appIdRaw);
   if (!appIdRaw || Number.isNaN(appIdNum)) {
     console.log("No App ID provided in issue body");
-    return; // End script here
+    appIdNum = undefined; // Set appIdNum to undefined
+    if (!gameName) {
+      console.log("No game name provided in issue body either");
+      return; // End script here
+    }
   }
+  const encodedGameName = encodeURIComponent(gameName);
 
   console.log(`SteamDB App ID detected: ${appIdNum}`);
-  console.log(`Game Name: ${gameName || "( Unknown Game Name )"}`);
+  console.log(`Game Name: ${gameName}`);
 
   // Fetch the Organization Node ID
   const orgQuery = `
@@ -471,24 +504,32 @@ async function run() {
   const orgNodeId = orgData.organization.id;
   console.log(`Org Node ID for "${ORG_LOGIN}": ${orgNodeId}`);
 
-  // Check if a Project V2 named "projectTitle" exists
-  let projectTitle = String(appIdNum);
-  if (gameName) {
-    projectTitle = `${appIdNum} - ${gameName}`;
+  // Set the project title
+  let projectTitle = `name="${encodedGameName}"`;
+  if (appIdNum) {
+    projectTitle = `appid="${appIdNum}" name="${encodedGameName}"`;
   }
-  let project = await checkForExistingAppIdProject(orgNodeId, projectTitle);
+
+  // Check if a Project V2 named "projectTitle" exists
+  let project = await checkForExistingProject(
+    orgNodeId,
+    appIdNum,
+    encodedGameName
+  );
 
   if (project) {
     console.log(
       `Project V2 "${projectTitle}" (ID: ${project.id}) already exists at: ${project.url}`
     );
+    // Update project data
+    await configureProjectData(project.id, projectTitle, gameName);
   } else {
     console.log(
       `No existing Project V2 named "${projectTitle}". Creating new project...`
     );
     project = await createProjectV2(orgNodeId, projectTitle, gameName);
-    // Set "Short description" field with "gameName" or default
-    await setProjectShortDescription(project.id, projectTitle, gameName);
+    // Set project data
+    await configureProjectData(project.id, projectTitle, gameName);
     // Configure the project's status fields
     await setProjectCustomFields(project.id);
   }
