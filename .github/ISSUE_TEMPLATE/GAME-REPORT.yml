@@ -198,23 +198,29 @@ body:
     validations:
       required: false
   #   > Allow Tearing
-  - type: checkboxes
+  - type: dropdown
     id: allow_tearing
     attributes:
       label: Allow Tearing
       description: Did you enable the "Allow Tearing" option?
       options:
-        - label: Enabled
-          required: false
+        - Disabled
+        - Enabled
+      default: 0
+    validations:
+      required: false
   #   > Half Rate Shading
-  - type: checkboxes
+  - type: dropdown
     id: half_rate_shading
     attributes:
       label: Half Rate Shading
       description: Did you enable the "Half Rate Shading" option?
       options:
-        - label: Enabled
-          required: false
+        - Disabled
+        - Enabled
+      default: 0
+    validations:
+      required: false
   #   > TDP Limit
   - type: input
     id: tdp_limit
