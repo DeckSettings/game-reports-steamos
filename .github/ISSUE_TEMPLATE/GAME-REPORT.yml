@@ -1,11 +1,21 @@
 name: "Game Report"
 description: "File a game report"
-title: "(Placeholder - The title will be automatically filled in) <FULL GAME NAME> - [<COMPATIBILITY> - <EXPECTED FRAMERATE>]"
+title: "(Placeholder - Enter title below)"
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for taking the time to submit a report.
+
+        <br/>
+  #   > Title
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: A short summary of this report. Keep it under 100 characters (about the length of this description).
+    validations:
+      required: true
 
   # -- GAME INFORMATION --
   - type: markdown
@@ -61,7 +71,7 @@ body:
         ## Setup Experience
 
         <br/>
-  #   > Deck compatibility
+  #   > Device Compatibility
   - type: dropdown
     id: device_compatibility
     attributes:
@@ -146,7 +156,7 @@ body:
         ## SteamOS Configuration
 
         <br/>
-  #   > Game Compatibility Tool
+  #   > Steam Play Compatibility Tool Used
   - type: dropdown
     id: steam_play_compatibility_tool
     attributes:
@@ -160,7 +170,7 @@ body:
       default: 0
     validations:
       required: true
-  #   > Game Compatibility Version
+  #   > Compatibility Tool Version
   - type: input
     id: steam_play_compatibility_tool_version
     attributes:
