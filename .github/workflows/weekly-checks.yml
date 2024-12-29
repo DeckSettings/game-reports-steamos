@@ -5,155 +5,33 @@ on:
     - cron: "0 0 * * 0"
 
 jobs:
-  weekly-check:
+  weekly-check-report-for-missing-data:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       issues: write
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: ".github/scripts/package-lock.json"
+
+      - name: "Install dependencies"
+        working-directory: .github/scripts
+        run: |
+          npm ci
+
       - name: "Check all open issues for incomplete template"
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const requiredSections = [
-              { heading: "Game Name", minLength: 2 },
-              { heading: "Launcher", minLength: 3 },
-              { heading: "Deck Compatibility", minLength: 1 },
-              { heading: "Target Framerate", minLength: 1 },
-              { heading: "Device", minLength: 1 },
-              { heading: "SteamOS Version", minLength: 1 },
-              { heading: "Undervolt Applied", minLength: 1 },
-              { heading: "Steam Play Compatibility Tool Used", minLength: 1 },
-              { heading: "Compatibility Tool Version", minLength: 1 },
-              { heading: "Custom Launch Options", minLength: 1 },
-              { heading: "Frame Limit", minLength: 1 },
-              { heading: "Allow Tearing", minLength: 1 },
-              { heading: "Half Rate Shading", minLength: 1 },
-              { heading: "TDP Limit", minLength: 1 },
-              { heading: "Manual GPU Clock", minLength: 1 },
-              { heading: "Scaling Mode", minLength: 1 },
-              { heading: "Scaling Filter", minLength: 1 },
-              { heading: "Game Display Settings", minLength: 1 },
-              { heading: "Game Graphics Settings", minLength: 1 },
-              { heading: "Additional Notes", minLength: 1 },
-            ];
-
-            function extractHeadingValue(lines, heading) {
-              const headingToFind = `### ${heading}`.toLowerCase();
-              const headingIndex = lines.findIndex(
-                (line) => line.trim().toLowerCase() === headingToFind
-              );
-              if (headingIndex === -1) return null;
-
-              for (let i = headingIndex + 1; i < lines.length; i++) {
-                const currentLine = lines[i].trim();
-
-                if (currentLine.toLowerCase().startsWith("### ")) {
-                  return null;
-                }
-                if (!currentLine) {
-                  continue;
-                }
-                return currentLine;
-              }
-              return null;
-            }
-
-            async function processIssue(issue, body) {
-              const lines = body.split(/\r?\n/);
-
-              // Validate each required section
-              const errors = [];
-              for (const section of requiredSections) {
-                const extractedValue = extractHeadingValue(lines, section.heading);
-
-                if (extractedValue === null) {
-                  console.error(`❌ Missing or empty section for: "${section.heading}"`);
-                  errors.push(`${section.heading}`);
-                } else if (extractedValue.length < section.minLength) {
-                  console.error(
-                    `❌ Section "${section.heading}" is too short or not valid. Found: "${extractedValue}"`
-                  );
-                  errors.push(`${section.heading}`);
-                } else {
-                  console.log(`✔ "${section.heading}" OK: "${extractedValue}"`);
-                }
-              }
-
-              const incompleteLabel = "invalid:template-incomplete";
-
-              // If there are errors, either label/comment or skip if already labeled
-              if (errors.length > 0) {
-                // Check if this issue already has the "invalid:template-incomplete" label
-                const existingLabels = issue.labels.map((label) => label.name);
-                const hasLabel = existingLabels.includes(incompleteLabel);
-
-                if (!hasLabel) {
-                  // Build a message for the comment
-                  let commentBodyLines = [
-                    "**Validation Failed:** Some required sections are missing or incomplete.",
-                    "",
-                    "Below are the sections that need attention:",
-                  ];
-                  for (const heading of errors) {
-                    commentBodyLines.push(`- Add/Update *${heading}* header`);
-                    commentBodyLines.push("```");
-                    commentBodyLines.push(`### ${heading}`);
-                    commentBodyLines.push(`<${heading} data here>`);
-                    commentBodyLines.push("```");
-                    commentBodyLines.push("");
-                  }
-                  commentBodyLines.push(
-                    "Please edit the issue body adding in all required sections."
-                  );
-                  const commentBody = commentBodyLines.join("\n");
-
-                  // Add the "invalid:template-incomplete" label
-                  await github.rest.issues.addLabels({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number,
-                    labels: [incompleteLabel],
-                  });
-
-                  // Post a comment with details
-                  await github.rest.issues.createComment({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number,
-                    body: commentBody,
-                  });
-                } else {
-                  console.log(
-                    `Issue #${issue.number} already labeled "${incompleteLabel}". Skipping comment.`
-                  );
-                }
-              } else {
-                // If no errors, remove the "invalid:template-incomplete" if it exists
-                console.log("All required sections are present and valid!");
-
-                const existingLabels = issue.labels.map((l) => l.name);
-                if (existingLabels.includes(incompleteLabel)) {
-                  // remove label
-                  // note: we must get the label's "node_id" or name to remove it by name
-                  await github.rest.issues.removeLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issue.number,
-                    name: incompleteLabel,
-                  });
-                  console.log(
-                    `Removed label "${incompleteLabel}" from Issue #${issue.number}.`
-                  );
-                }
-              }
-            }
-
-            /**
-            * 1) List *all* open issues in this repo.
-            *    We'll fetch in pages until we run out.
-            */
+            const { execSync } = require('child_process');
             let page = 1;
             let perPage = 50;
             let allIssues = [];
@@ -170,13 +48,15 @@ jobs:
               page++;
             }
 
-            // We'll loop through each open issue now
+            // We'll loop through each open issue
             for (const issue of allIssues) {
               // Skip PRs or any issue that doesn't have a body
               if (issue.pull_request) continue;
               if (!issue.body) continue;
 
-              await processIssue(issue, issue.body);
+              // Run script
+              execSync(`GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} ISSUE_NUMBER=${issue.number} REPO_OWNER=DeckSettings REPO_NAME=deck-settings node check-report-for-missing-data.js`, { stdio: 'inherit' });
+
             }
 
             // The job as a whole doesn't need to fail if we found incomplete issues
