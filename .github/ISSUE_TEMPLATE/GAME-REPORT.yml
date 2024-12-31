@@ -49,10 +49,10 @@ body:
     id: launcher
     attributes:
       label: Launcher
-      description: The launcher used to install the game. If the game was not installed directly from Steam, specify the store and the tool used for installation (e.g., Lutris, Heroic, etc.).
+      description: The launcher used to install the game. If the game was not installed directly from Steam, specify the store and the tool used for installation (e.g., Lutris, Heroic Games Launcher, etc.).
       options:
         - Steam
-        - Heroic
+        - Heroic Games Launcher
         - Lutris
         - Bottles
         - Other
@@ -124,6 +124,7 @@ body:
         - ROG Ally Z1
         - ROG Ally Z1 Extreme
         - ROG Ally X
+        - Legion Go
       default: 1
     validations:
       required: true

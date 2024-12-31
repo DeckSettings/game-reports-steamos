@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:04:20 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 26th December 2024 10:17:26 pm
+ * Last Modified: Wednesday, 1st January 2025 11:34:45 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -18,6 +18,22 @@ dotenv.config(); // Load environment variables from .env for local testing
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
+
+async function fetchLabels(owner, repo) {
+  try {
+    const { data: labels } = await octokit.issues.listLabelsForRepo({
+      owner,
+      repo,
+    });
+    return labels.map((label) => ({
+      name: label.name,
+      description: label.description ? label.description.toLowerCase() : "",
+    }));
+  } catch (error) {
+    console.error(`Error fetching labels: ${error.message}`);
+    throw error;
+  }
+}
 
 // Function to apply a label to an issue, removing outdated labels of the same type
 async function applyLabel(
@@ -66,9 +82,7 @@ async function applyLabel(
         labels: [newLabel],
       });
     } else if (!labelValue) {
-      console.log(
-        "No matching label found or specified in issue text. Not adding any label."
-      );
+      console.log("No matching label found. Not adding any label.");
     } else {
       console.log(
         `Label "${newLabel}" already present on issue #${issueNumber}.`
@@ -106,24 +120,35 @@ async function run() {
     const body = issue.body || "";
     const lines = body.split(/\r?\n/);
 
+    // Fetch all labels
+    const labels = await fetchLabels(owner, repo);
+
     // Extract "Device" label value
     const deviceValue = extractHeadingValue(lines, "Device");
     let newDeviceLabel = null;
     if (deviceValue) {
       const lowerDevice = deviceValue.toLowerCase();
-      if (lowerDevice.includes("steam deck")) {
-        newDeviceLabel = "steamdeck";
-      } else if (lowerDevice.includes("ally")) {
-        newDeviceLabel = "rogally";
-      }
-      await applyLabel(
-        octokit,
-        owner,
-        repo,
-        issueNumber,
-        "device",
-        newDeviceLabel
+      let matchingLabel = labels.find(
+        (label) => lowerDevice === label.description
       );
+      if (!matchingLabel) {
+        matchingLabel = labels.find((label) =>
+          label.description.includes(lowerDevice)
+        );
+      }
+      if (matchingLabel) {
+        newDeviceLabel = matchingLabel.name.replace(/^device:/, "");
+        await applyLabel(
+          octokit,
+          owner,
+          repo,
+          issueNumber,
+          "device",
+          newDeviceLabel
+        );
+      } else {
+        console.log(`No device label found matching: ${lowerDevice}`);
+      }
     }
 
     // Extract "Launcher" label value
@@ -131,25 +156,27 @@ async function run() {
     let newLauncherLabel = null;
     if (launcherValue) {
       const lowerLauncher = launcherValue.toLowerCase();
-      if (lowerLauncher.includes("steam")) {
-        newLauncherLabel = "steam";
-      } else if (lowerLauncher.includes("heroic")) {
-        newLauncherLabel = "heroic";
-      } else if (lowerLauncher.includes("lutris")) {
-        newLauncherLabel = "lutris";
-      } else if (lowerLauncher.includes("bottles")) {
-        newLauncherLabel = "bottles";
-      } else {
-        newLauncherLabel = "other";
-      }
-      await applyLabel(
-        octokit,
-        owner,
-        repo,
-        issueNumber,
-        "launcher",
-        newLauncherLabel
+      let matchingLabel = labels.find(
+        (label) => lowerLauncher === label.description
       );
+      if (!matchingLabel) {
+        matchingLabel = labels.find((label) =>
+          label.description.includes(lowerLauncher)
+        );
+      }
+      if (matchingLabel) {
+        newLauncherLabel = matchingLabel.name.replace(/^launcher:/, "");
+        await applyLabel(
+          octokit,
+          owner,
+          repo,
+          issueNumber,
+          "launcher",
+          newLauncherLabel
+        );
+      } else {
+        console.log(`No launcher label found matching: ${lowerLauncher}`);
+      }
     }
   } catch (error) {
     console.error(`Error in run: ${error.message}`);
