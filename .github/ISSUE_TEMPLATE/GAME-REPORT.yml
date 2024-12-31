@@ -1,6 +1,6 @@
 name: "Game Report"
 description: "File a game report"
-title: "(Placeholder - Enter title below)"
+title: "(Placeholder - Issue title will be automatically populated with the information provided below on submit)"
 body:
   - type: markdown
     attributes:
@@ -8,11 +8,11 @@ body:
         Thanks for taking the time to submit a report.
 
         <br/>
-  #   > Title
+  #   > Summary
   - type: input
-    id: title
+    id: summary
     attributes:
-      label: Title
+      label: Summary
       description: A short summary of this report. Keep it under 100 characters (about the length of this description).
     validations:
       required: true

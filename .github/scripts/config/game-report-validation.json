@@ -5,8 +5,8 @@
     "description": "Schema for validating game report submissions",
     "type": "object",
     "properties": {
-        "Title": {
-            "description": "The title of the report.",
+        "Summary": {
+            "description": "The summary of the report.",
             "type": "string",
             "minLength": 2,
             "maxLength": 100
