@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Sunday, 29th December 2024 11:33:44 am
+ * Last Modified: Thursday, 2nd January 2025 11:05:14 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -68,27 +68,67 @@ async function processIssue(owner, repo, issue) {
     reportData[key] = extractedValue;
   }
 
+  // Build a list of errors
+  const errors = [];
+
+  // Check the in-game settings markdown formatting
+  ["Game Display Settings", "Game Graphics Settings"].forEach((section) => {
+    const sectionContent = reportData[section];
+    if (sectionContent) {
+      const invalidLines = validateGameSettingsMarkdownSection(
+        sectionContent.split(/\r?\n/)
+      );
+      if (invalidLines.length > 0) {
+        errors.push(
+          ...invalidLines.map(
+            (line) =>
+              `Invalid markdown for in-game settings in section '${section}' (Line ${line.lineNumber}): \`${line.line}\``
+          )
+        );
+      }
+    }
+  });
+
   // Perform schema validation
   const valid = validate(reportData);
-  if (!valid) {
-    const errors = validate.errors.map((err) => {
-      const field = err.instancePath.slice(1) || err.params.missingProperty;
+  if (!valid || errors.length > 0) {
+    const schemaErrors = valid
+      ? []
+      : validate.errors.map((err) => {
+          const field = err.instancePath.slice(1) || err.params.missingProperty;
 
-      // Include allowed values in the error message if available
-      let errorMessage = `${field}: ${err.message}`;
-      if (err.keyword === "enum" && err.params.allowedValues) {
-        errorMessage += ` (${err.params.allowedValues.join(", ")})`;
-      }
+          // Include allowed values in the error message if available
+          let errorMessage = `${field}: ${err.message}`;
+          if (err.keyword === "enum" && err.params.allowedValues) {
+            errorMessage += ` (${err.params.allowedValues.join(", ")})`;
+          }
 
-      return errorMessage;
-    });
-    console.error("❌ Validation errors:", errors);
-    await handleValidationFailure(owner, repo, issue.number, errors);
+          return errorMessage;
+        });
+    const allErrors = [...schemaErrors, ...errors];
+    console.error("❌ Validation errors:", allErrors);
+    await handleValidationFailure(owner, repo, issue.number, allErrors);
   } else {
     console.log("✔ Issue passes schema validation.");
     await removeValidationComments(owner, repo, issue.number);
     await removeIncompleteLabel(owner, repo, issue.number);
   }
+}
+
+// Additional checks for in-game settings markdown sections
+function validateGameSettingsMarkdownSection(lines) {
+  const validLineRegex = /^((####\s.*)|(-\s\*\*[^:]+:\*\*\s.*))$/;
+  const invalidLines = [];
+
+  lines.forEach((line, index) => {
+    const trimmedLine = line.trim();
+    if (trimmedLine === "" || validLineRegex.test(trimmedLine)) {
+      return;
+    }
+    invalidLines.push({ line: trimmedLine, lineNumber: index + 1 });
+  });
+
+  return invalidLines;
 }
 
 // Handle validation failures (add label and comment)
@@ -121,7 +161,7 @@ async function postValidationComment(owner, repo, issueNumber, errors) {
     "**Validation Failed:** Some required sections are missing or incomplete.\n",
     "### Sections to fix:",
     ...errors.map((error) => `- ${error}\n`),
-    "Please edit the issue to include all required sections.",
+    "Please edit the issue to include all required sections with the correct formatting.",
   ].join("\n");
 
   await octokit.issues.createComment({

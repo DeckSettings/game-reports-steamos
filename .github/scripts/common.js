@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 2:54:03 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 26th December 2024 10:26:23 pm
+ * Last Modified: Thursday, 2nd January 2025 10:48:25 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -21,16 +21,17 @@ export function extractHeadingValue(lines, heading) {
   );
   if (headingIndex === -1) return null;
 
+  const sectionLines = [];
+
   for (let i = headingIndex + 1; i < lines.length; i++) {
     const currentLine = lines[i].trim();
 
     if (currentLine.toLowerCase().startsWith("### ")) {
-      return null;
+      break;
     }
-    if (!currentLine) {
-      continue;
-    }
-    return currentLine;
+    sectionLines.push(currentLine);
   }
-  return null;
+
+  const content = sectionLines.join("\n").trim();
+  return content.length > 0 ? content : null;
 }
