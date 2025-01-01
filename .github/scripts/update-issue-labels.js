@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:04:20 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Wednesday, 1st January 2025 11:34:45 am
+ * Last Modified: Thursday, 2nd January 2025 10:18:30 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -74,7 +74,7 @@ async function applyLabel(
 
     // Add the new label if it's not already present
     if (labelValue && !existingLabelNames.includes(newLabel)) {
-      console.log(`Adding label: ${newLabel}`);
+      console.log(`Adding label: ${newLabel} to issue #${issueNumber}.`);
       await octokit.issues.addLabels({
         owner,
         repo,
@@ -131,6 +131,11 @@ async function run() {
       let matchingLabel = labels.find(
         (label) => lowerDevice === label.description
       );
+      if (!matchingLabel) {
+        matchingLabel = labels.find((label) =>
+          lowerDevice.includes(label.description)
+        );
+      }
       if (!matchingLabel) {
         matchingLabel = labels.find((label) =>
           label.description.includes(lowerDevice)
