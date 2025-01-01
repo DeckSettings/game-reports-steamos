@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 2:56:33 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Monday, 30th December 2024 12:48:55 am
+ * Last Modified: Thursday, 2nd January 2025 11:16:13 am
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -42,14 +42,14 @@ async function run() {
   // Process issue data
   try {
     // Extract values for "Game Name" and "Target Framerate"
-    const reportTitle = extractHeadingValue(lines, "Title");
+    const reportSummary = extractHeadingValue(lines, "Summary");
     const gameName = extractHeadingValue(lines, "Game Name");
     const targetFramerate = extractHeadingValue(lines, "Target Framerate");
     let appIdRaw = extractHeadingValue(lines, "App ID");
 
     // Check that gameName and targetFramerate exists. If not, then the issue will be marked as having an error. Lets quit this job
-    if (!reportTitle) {
-      console.log("No Title provided in issue body");
+    if (!reportSummary) {
+      console.log("No Summary provided in issue body");
       return;
     }
     if (!gameName) {
@@ -73,12 +73,12 @@ async function run() {
     }
 
     // Construct the new title
-    const newTitle = `name="${gameName}" appid="${appIdRaw}" target_framerate="${targetFramerate} title="${reportTitle}"`;
+    const newTitle = `name="${gameName}" appid="${appIdRaw}" target_framerate="${targetFramerate} title="${reportSummary}"`;
     console.log("Parsed from issue body:");
     console.log(`  Game Name: ${gameName}`);
     console.log(`  App ID: ${appIdRaw}`);
     console.log(`  Target Framerate: ${targetFramerate}`);
-    console.log(`  Title: ${reportTitle}`);
+    console.log(`  Summary: ${reportSummary}`);
     console.log("Constructed Title:");
     console.log(`  ${newTitle}`);
     console.log(`Current issue #${issue.number} title: "${issue.title}"`);
