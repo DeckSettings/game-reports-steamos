@@ -14,7 +14,7 @@ While platforms like [ProtonDB](https://www.protondb.com/) and [ShareDeck](https
 
 - ProtonDB allows you to submit multiple reports on the same game but does not let you edit or update a report directly.
 - If you want a report removed on ProtonDB, you need to submit a ticket and wait for admin approval.
-- ShareDeck lacks flexibility in formatting and often presents issues when trying to edit reports after submission.
+- ShareDeck lacks consistency in report formatting and often presents issues when trying to edit reports after submission. This makes viewing reports difficult and many reports end up looking like long paragraphs of unformatted text.
 
 👉 Deck Settings allows users to fully control their game reports. You can update or close your own reports without waiting for admin intervention.
 
@@ -54,7 +54,7 @@ Submitting a game report is quick and easy.
 
 ### 📄 New Report Submission:
 
-👉 [Create a New Game Report](https://github.com/DeckSettings/deck-settings-db/issues/new?assignees=&labels=&projects=&template=GAME-REPORT.yml&title=%28Placeholder+-+The+title+will+be+automatically+filled+in%29+%3CFULL+GAME+NAME%3E+-+%5B%3CCOMPATIBILITY%3E+-+%3CEXPECTED+FRAMERATE%3E%5D)
+👉 [Create a New Game Report](https://github.com/DeckSettings/deck-settings-db/issues/new?assignees=&labels=&projects=&template=GAME-REPORT.yml&title=%28Placeholder+-+Issue+title+will+be+automatically+populated+with+the+information+provided+below%29)
 
 Click the link above to generate a new report using our pre-filled template.
 
