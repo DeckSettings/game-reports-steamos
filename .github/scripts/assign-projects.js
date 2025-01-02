@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 3:10:59 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Sunday, 29th December 2024 12:13:05 pm
+ * Last Modified: Thursday, 2nd January 2025 5:21:57 pm
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -29,6 +29,63 @@ const graphqlWithAuth = graphql.defaults({
     authorization: `token ${process.env.GITHUB_TOKEN}`,
   },
 });
+
+/**
+ * Checks if a URL points to a valid image by performing a HEAD request.
+ * @param {string} url - The URL to check.
+ * @returns {Promise<boolean>} - Resolves to true if the URL returns an image, otherwise false.
+ */
+async function checkImageUrl(url) {
+  try {
+    const response = await fetch(url, { method: "HEAD" });
+    return (
+      response.ok && response.headers.get("content-type")?.startsWith("image")
+    );
+  } catch (error) {
+    console.error(`Failed to fetch ${url}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Generates a structured readme for a project, inserting URLs for Poster, Hero, and Banner images.
+ * If no valid app ID is provided or the images do not exist, '_No response_' is used instead.
+ * @param {string|number} appIdNum - The App ID of the game (or empty if not available).
+ * @returns {Promise<string>} - Resolves to a formatted readme string with image URLs or placeholders.
+ */
+async function generateProjectReadme(appIdNum) {
+  const urls = {
+    poster: `https://steamcdn-a.akamaihd.net/steam/apps/${appIdNum}/library_600x900.jpg`,
+    hero: `https://cdn.cloudflare.steamstatic.com/steam/apps/${appIdNum}/library_hero.jpg`,
+    banner: `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appIdNum}/header.jpg`,
+  };
+
+  const poster =
+    appIdNum && (await checkImageUrl(urls.poster))
+      ? urls.poster
+      : "_No response_";
+  const hero =
+    appIdNum && (await checkImageUrl(urls.hero)) ? urls.hero : "_No response_";
+  const banner =
+    appIdNum && (await checkImageUrl(urls.banner))
+      ? urls.banner
+      : "_No response_";
+
+  return [
+    "### Poster",
+    "",
+    poster,
+    "",
+    "### Hero",
+    "",
+    hero,
+    "",
+    "### Banner",
+    "",
+    banner,
+    "",
+  ].join("\n");
+}
 
 /**
  * Check if a Project V2 with the given app ID or game name already exists in the org.
@@ -203,9 +260,13 @@ async function setProjectCustomFields(projectId) {
  * @param {string} projectId - The Node ID of the project.
  * @param {string} projectTitle - The App ID as a string.
  * @param {string} gameName - The Game Name as a string.
+ * @param {string} appIdNum - The Game appid as a number.
  */
-async function configureProjectData(projectId, projectTitle, gameName) {
+async function configureProjectData(projectId, projectTitle, gameName, appIdNum) {
   try {
+    // Create readme contents
+    const readme = await generateProjectReadme(appIdNum || "");
+
     // Mutation to set the field value
     const setFieldMutation = `
       mutation setProjectField($projectId: ID!, $title: String!, $readme: String!, $description: String!) {
@@ -230,7 +291,7 @@ async function configureProjectData(projectId, projectTitle, gameName) {
     const setFieldVars = {
       projectId,
       title: projectTitle,
-      readme: `# [${projectTitle}] \n\nThis GitHub project contains a list of all game reports matching this App ID.`,
+      readme,
       description: gameName,
     };
 
@@ -523,14 +584,14 @@ async function run() {
     projectTitle = `appid="${appIdNum}" name="${gameName}"`;
 
     // Update project data
-    await configureProjectData(project.id, projectTitle, gameName);
+    await configureProjectData(project.id, projectTitle, gameName, appIdNum);
   } else {
     console.log(
       `No existing Project V2 named "${projectTitle}". Creating new project...`
     );
     project = await createProjectV2(orgNodeId, projectTitle);
     // Set project data
-    await configureProjectData(project.id, projectTitle, gameName);
+    await configureProjectData(project.id, projectTitle, gameName, appIdNum);
     // Configure the project's status fields
     await setProjectCustomFields(project.id);
   }
