@@ -40,6 +40,7 @@ jobs:
         working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}

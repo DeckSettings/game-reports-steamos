@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 3:10:59 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 2nd January 2025 5:21:57 pm
+ * Last Modified: Thursday, 2nd January 2025 5:46:22 pm
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -17,16 +17,18 @@ dotenv.config(); // Load environment variables from .env for local testing
 
 // Configuration
 const ORG_LOGIN = process.env.ORG_LOGIN || "DeckSettings";
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const STEAMGRIDDB_API_KEY = process.env.STEAMGRIDDB_API_KEY;
 
 // Initialize Octokit with the provided GITHUB_TOKEN
 const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
+  auth: GITHUB_TOKEN,
 });
 
 // Initialize Octokit GraphQL with the same token
 const graphqlWithAuth = graphql.defaults({
   headers: {
-    authorization: `token ${process.env.GITHUB_TOKEN}`,
+    authorization: `token ${GITHUB_TOKEN}`,
   },
 });
 
@@ -48,41 +50,110 @@ async function checkImageUrl(url) {
 }
 
 /**
+ * Searches for a game by name on SteamGridDB and returns its game ID.
+ * @param {string} gameName - The name of the game.
+ * @returns {Promise<string|null>} - The game ID if found, otherwise null.
+ */
+async function fetchSteamGridDBGameId(gameName) {
+  const url = `https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(
+    gameName
+  )}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${STEAMGRIDDB_API_KEY}`,
+      },
+    });
+    const data = await response.json();
+    if (data.success && data.data.length > 0) {
+      return data.data[0].id; // Return the first matching game ID
+    }
+  } catch (error) {
+    console.error(`Failed to search SteamGridDB for ${gameName}:`, error);
+  }
+  return null;
+}
+
+/**
+ * Fetches a list of images from SteamGridDB based on type (grids, heros, logos).
+ * @param {string|number} gameId - The Game ID.
+ * @param {string} type - The type of image to fetch ("grids", "heros", "logos").
+ * @returns {Promise<string|null>} - URL of the first image found or null if not found.
+ */
+async function fetchListFromSteamGridDB(gameId, type) {
+  const url = `https://www.steamgriddb.com/api/v2/${type}/game/${gameId}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${STEAMGRIDDB_API_KEY}`,
+      },
+    });
+    if (!response.ok) {
+      console.error(
+        `SteamGridDB returned status ${response.status} for ${type} (Game ID: ${gameId})`
+      );
+      return null;
+    }
+    const data = await response.json();
+    if (data.success && data.data.length > 0) {
+      return data.data[0].url; // Use the first image returned
+    }
+  } catch (error) {
+    console.error(
+      `Failed to fetch ${type} from SteamGridDB for appid ${gameId}:`,
+      error
+    );
+  }
+  return null;
+}
+
+/**
  * Generates a structured readme for a project, inserting URLs for Poster, Hero, and Banner images.
- * If no valid app ID is provided or the images do not exist, '_No response_' is used instead.
+ * If no valid app ID images are found, attempts to fetch from SteamGridDB by game name.
  * @param {string|number} appIdNum - The App ID of the game (or empty if not available).
+ * @param {string} gameName - The name of the game.
  * @returns {Promise<string>} - Resolves to a formatted readme string with image URLs or placeholders.
  */
-async function generateProjectReadme(appIdNum) {
+async function generateProjectReadme(appIdNum, gameName) {
   const urls = {
     poster: `https://steamcdn-a.akamaihd.net/steam/apps/${appIdNum}/library_600x900.jpg`,
     hero: `https://cdn.cloudflare.steamstatic.com/steam/apps/${appIdNum}/library_hero.jpg`,
     banner: `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appIdNum}/header.jpg`,
   };
 
-  const poster =
-    appIdNum && (await checkImageUrl(urls.poster))
-      ? urls.poster
-      : "_No response_";
-  const hero =
-    appIdNum && (await checkImageUrl(urls.hero)) ? urls.hero : "_No response_";
-  const banner =
-    appIdNum && (await checkImageUrl(urls.banner))
-      ? urls.banner
-      : "_No response_";
+  // First try setting images based on the appid
+  let poster =
+    appIdNum && (await checkImageUrl(urls.poster)) ? urls.poster : null;
+  let hero = appIdNum && (await checkImageUrl(urls.hero)) ? urls.hero : null;
+  let banner =
+    appIdNum && (await checkImageUrl(urls.banner)) ? urls.banner : null;
+
+  // If any of the images are missing, attempt to fetch from SteamGridDB
+  if (!poster || !hero || !banner) {
+    // Search for a gameId using the game name as a search
+    const steamGridGameId = await fetchSteamGridDBGameId(gameName);
+
+    if (steamGridGameId) {
+      poster = await fetchListFromSteamGridDB(steamGridGameId, "grids");
+      hero = await fetchListFromSteamGridDB(steamGridGameId, "heroes");
+      banner = await fetchListFromSteamGridDB(steamGridGameId, "logos");
+    }
+  }
 
   return [
     "### Poster",
     "",
-    poster,
+    poster || "_No response_",
     "",
     "### Hero",
     "",
-    hero,
+    hero || "_No response_",
     "",
     "### Banner",
     "",
-    banner,
+    banner || "_No response_",
     "",
   ].join("\n");
 }
@@ -262,10 +333,15 @@ async function setProjectCustomFields(projectId) {
  * @param {string} gameName - The Game Name as a string.
  * @param {string} appIdNum - The Game appid as a number.
  */
-async function configureProjectData(projectId, projectTitle, gameName, appIdNum) {
+async function configureProjectData(
+  projectId,
+  projectTitle,
+  gameName,
+  appIdNum
+) {
   try {
     // Create readme contents
-    const readme = await generateProjectReadme(appIdNum || "");
+    const readme = await generateProjectReadme(appIdNum || "", gameName || "");
 
     // Mutation to set the field value
     const setFieldMutation = `
