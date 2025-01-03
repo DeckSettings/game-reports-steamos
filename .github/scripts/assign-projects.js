@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 3:10:59 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 2nd January 2025 5:46:22 pm
+ * Last Modified: Friday, 3rd January 2025 7:25:51 pm
  * Modified By: Josh5 (jsunnex@gmail.com)
  */
 
@@ -119,7 +119,8 @@ async function fetchListFromSteamGridDB(gameId, type) {
 async function generateProjectReadme(appIdNum, gameName) {
   const urls = {
     poster: `https://steamcdn-a.akamaihd.net/steam/apps/${appIdNum}/library_600x900.jpg`,
-    hero: `https://cdn.cloudflare.steamstatic.com/steam/apps/${appIdNum}/library_hero.jpg`,
+    hero: `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appIdNum}/library_hero.jpg`,
+    background: `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appIdNum}/page_bg_generated_v6b.jpg`,
     banner: `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appIdNum}/header.jpg`,
   };
 
@@ -127,6 +128,8 @@ async function generateProjectReadme(appIdNum, gameName) {
   let poster =
     appIdNum && (await checkImageUrl(urls.poster)) ? urls.poster : null;
   let hero = appIdNum && (await checkImageUrl(urls.hero)) ? urls.hero : null;
+  let background =
+    appIdNum && (await checkImageUrl(urls.background)) ? urls.background : null;
   let banner =
     appIdNum && (await checkImageUrl(urls.banner)) ? urls.banner : null;
 
@@ -150,6 +153,10 @@ async function generateProjectReadme(appIdNum, gameName) {
     "### Hero",
     "",
     hero || "_No response_",
+    "",
+    "### Background",
+    "",
+    background || "_No response_",
     "",
     "### Banner",
     "",
