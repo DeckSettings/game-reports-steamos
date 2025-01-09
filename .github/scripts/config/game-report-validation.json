@@ -128,6 +128,14 @@
                 "Off"
             ]
         },
+        "Enable VRR": {
+            "description": "Toggle Enable VRR option.",
+            "type": "string",
+            "enum": [
+                "On",
+                "Off"
+            ]
+        },
         "Allow Tearing": {
             "description": "Toggle Allow Tearing option.",
             "type": "string",

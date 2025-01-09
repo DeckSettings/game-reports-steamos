@@ -248,6 +248,18 @@ body:
       default: 0
     validations:
       required: false
+  #   > Enable VRR
+  - type: dropdown
+    id: enable_vrr
+    attributes:
+      label: Enable VRR
+      description: Did you enable the "Enable VRR" option?
+      options:
+        - "Off"
+        - "On"
+      default: 0
+    validations:
+      required: false
   #   > Allow Tearing
   - type: dropdown
     id: allow_tearing
