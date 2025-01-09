@@ -236,6 +236,18 @@ body:
       description: If you applied a frame limit value, what value did you set? Write only the number without any unit of measure. Leave blank if no frame limit was set.
     validations:
       required: false
+  #   > Disable Frame Limit
+  - type: dropdown
+    id: disable_frame_limit
+    attributes:
+      label: Disable Frame Limit
+      description: Did you enable the "Disable Frame Limit" option?
+      options:
+        - "Off"
+        - "On"
+      default: 0
+    validations:
+      required: false
   #   > Allow Tearing
   - type: dropdown
     id: allow_tearing
@@ -243,8 +255,8 @@ body:
       label: Allow Tearing
       description: Did you enable the "Allow Tearing" option?
       options:
-        - Disabled
-        - Enabled
+        - "Off"
+        - "On"
       default: 0
     validations:
       required: false
@@ -255,8 +267,8 @@ body:
       label: Half Rate Shading
       description: Did you enable the "Half Rate Shading" option?
       options:
-        - Disabled
-        - Enabled
+        - "Off"
+        - "On"
       default: 0
     validations:
       required: false

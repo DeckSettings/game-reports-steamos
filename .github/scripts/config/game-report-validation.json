@@ -88,6 +88,30 @@
             "type": "string",
             "minLength": 1
         },
+        "Game Resolution": {
+            "description": "Game resolution set.",
+            "type": "string",
+            "enum": [
+                "Default",
+                "Native",
+                "3840x2160",
+                "2560x1600",
+                "2560x1440",
+                "2048x1080",
+                "1920x1200",
+                "1920x1080",
+                "1600x1000",
+                "1600x900",
+                "1280x800",
+                "1280x720",
+                "1024x768",
+                "1024x640",
+                "800x600",
+                "800x500",
+                "640x480",
+                "640x400"
+            ]
+        },
         "Custom Launch Options": {
             "description": "Custom launch options applied.",
             "type": "string"
@@ -96,20 +120,28 @@
             "description": "Frame limit value set, or leave blank.",
             "type": "number"
         },
-        "Allow Tearing": {
-            "description": "Enable or disable Allow Tearing.",
+        "Disable Frame Limit": {
+            "description": "Toggle Disable Frame Limit option.",
             "type": "string",
             "enum": [
-                "Enabled",
-                "Disabled"
+                "On",
+                "Off"
+            ]
+        },
+        "Allow Tearing": {
+            "description": "Toggle Allow Tearing option.",
+            "type": "string",
+            "enum": [
+                "On",
+                "Off"
             ]
         },
         "Half Rate Shading": {
-            "description": "Enable or disable Half Rate Shading.",
+            "description": "Toggle Half Rate Shading option.",
             "type": "string",
             "enum": [
-                "Enabled",
-                "Disabled"
+                "On",
+                "Off"
             ]
         },
         "TDP Limit": {
