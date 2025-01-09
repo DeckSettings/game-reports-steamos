@@ -146,7 +146,7 @@ body:
     validations:
       required: false
 
-  # -- STEAMOS CONFIGURATION --
+  # -- STEAMOS GAME PROPERTIES --
   - type: markdown
     attributes:
       value: |
@@ -154,7 +154,7 @@ body:
         <br/>
         <br/>
 
-        ## SteamOS Configuration
+        ## SteamOS Game Properties
 
         <br/>
   #   > Steam Play Compatibility Tool Used
@@ -176,9 +176,37 @@ body:
     id: steam_play_compatibility_tool_version
     attributes:
       label: Compatibility Tool Version
-      description: What version of the above compatibility tool are you running? Write "latest" if using the default Proton provided by Steam.
+      description: What version of the above compatibility tool are you running? Write "default" if using the default Proton provided by Steam.
     validations:
       required: true
+  #   > Game Resolution
+  - type: dropdown
+    id: game_resolution
+    attributes:
+      label: Game Resolution
+      description: Did you configure a custom game resolution?
+      options:
+        - Default
+        - Native
+        - 3840x2160
+        - 2560x1600
+        - 2560x1440
+        - 2048x1080
+        - 1920x1200
+        - 1920x1080
+        - 1600x1000
+        - 1600x900
+        - 1280x800
+        - 1280x720
+        - 1024x768
+        - 1024x640
+        - 800x600
+        - 800x500
+        - 640x480
+        - 640x400
+      default: 0
+    validations:
+      required: false
   #   > Launch Options
   - type: input
     id: launch_options
