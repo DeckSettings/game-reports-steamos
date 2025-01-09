@@ -2,7 +2,7 @@ name: "Weekly Game Reports Check"
 
 on:
   schedule:
-    - cron: "0 0 * * 0"
+    - cron: "0 0 * * 5"
 
 jobs:
   weekly-check-report-for-missing-data:
@@ -55,8 +55,10 @@ jobs:
               if (!issue.body) continue;
 
               // Run script
-              execSync(`GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} ISSUE_NUMBER=${issue.number} REPO_OWNER=DeckSettings REPO_NAME=deck-settings node check-report-for-missing-data.js`, { stdio: 'inherit' });
-
+              execSync(
+                `GITHUB_TOKEN=${process.env.GITHUB_TOKEN} ISSUE_NUMBER=${issue.number} REPO_OWNER=${context.repo.owner} REPO_NAME=${context.repo.repo} node check-report-for-missing-data.js`,
+                { stdio: 'inherit', cwd: '.github/scripts' }
+              );
             }
 
             // The job as a whole doesn't need to fail if we found incomplete issues
