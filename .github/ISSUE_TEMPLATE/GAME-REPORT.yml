@@ -139,7 +139,7 @@ body:
       required: true
   #   > Steam Deck Undervolt
   - type: input
-    id: undervolt
+    id: undervolt_applied
     attributes:
       label: Undervolt Applied
       description: Have you applied any undervolting to your Deck? Specify it in the format CPU/GPU/SOC (e.g., 20/40/20). Leave blank if no undervolting was applied.
@@ -159,7 +159,7 @@ body:
         <br/>
   #   > Steam Play Compatibility Tool Used
   - type: dropdown
-    id: steam_play_compatibility_tool
+    id: steam_play_compatibility_tool_used
     attributes:
       label: Steam Play Compatibility Tool Used
       description: Which Steam Play compatibility tool was used?
@@ -173,7 +173,7 @@ body:
       required: true
   #   > Compatibility Tool Version
   - type: input
-    id: steam_play_compatibility_tool_version
+    id: compatibility_tool_version
     attributes:
       label: Compatibility Tool Version
       description: What version of the above compatibility tool are you running? Write "default" if using the default Proton provided by Steam.
@@ -209,7 +209,7 @@ body:
       required: false
   #   > Launch Options
   - type: input
-    id: launch_options
+    id: custom_launch_options
     attributes:
       label: Custom Launch Options
       description: Did you apply any custom launch options?
@@ -314,7 +314,7 @@ body:
         - Fill
       default: 0
     validations:
-      required: true
+      required: false
   #   > Scaling Filter
   - type: dropdown
     id: scaling_filter
@@ -328,7 +328,7 @@ body:
         - NIS
       default: 0
     validations:
-      required: true
+      required: false
 
   # -- IN-GAME SETTINGS --
   - type: markdown
@@ -359,7 +359,7 @@ body:
         ```
   #   > Display
   - type: textarea
-    id: in_game_display_settings
+    id: game_display_settings
     attributes:
       label: Game Display Settings
       description: Use markdown to show the display settings used in game.
@@ -367,7 +367,7 @@ body:
       required: true
   #   > Graphics
   - type: textarea
-    id: in_game_graphics_settings
+    id: game_graphics_settings
     attributes:
       label: Game Graphics Settings
       description: Use markdown to show the graphics settings used in game.
