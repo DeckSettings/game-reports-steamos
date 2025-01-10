@@ -196,6 +196,7 @@
         }
     },
     "required": [
+        "Summary",
         "Game Name",
         "Launcher",
         "Device Compatibility",
