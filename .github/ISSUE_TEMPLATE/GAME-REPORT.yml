@@ -100,11 +100,44 @@ body:
     validations:
       required: true
   #   > Average Battery Power Draw
-  - type: input
+  - type: dropdown
     id: average_battery_power_draw
     attributes:
       label: Average Battery Power Draw
       description: Open the in-game performance overlay, record the average BATT wattage over a few minutes of gameplay with your settings, and enter only the number (no units).
+      options:
+        - "Unknown"
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+        - "5"
+        - "6"
+        - "7"
+        - "8"
+        - "9"
+        - "10"
+        - "11"
+        - "12"
+        - "13"
+        - "14"
+        - "15"
+        - "16"
+        - "17"
+        - "18"
+        - "19"
+        - "20"
+        - "21"
+        - "22"
+        - "23"
+        - "24"
+        - "25"
+        - "26"
+        - "27"
+        - "28"
+        - "29"
+        - "30"
+      default: 0
     validations:
       required: false
 
