@@ -33,7 +33,7 @@ body:
     id: game_name
     attributes:
       label: Game Name
-      description: Name of the game for this report. Please use the full name. Copy/paste the header from SteamDB if possible, and include all special characters.
+      description: Enter the full name of the game. Use the exact name from SteamDB (https://steamdb.info/) if possible, including special characters.
     validations:
       required: true
   #   > App ID
@@ -41,7 +41,7 @@ body:
     id: app_id
     attributes:
       label: App ID
-      description: The App ID from SteamDB (https://steamdb.info/). Leave blank if not applicable.
+      description: Enter the SteamDB App ID (https://steamdb.info/) for the game. Leave blank if unavailable.
     validations:
       required: false
   #   > Store
@@ -49,7 +49,7 @@ body:
     id: launcher
     attributes:
       label: Launcher
-      description: The launcher used to install the game. If the game was not installed directly from Steam, specify the store and the tool used for installation (e.g., Lutris, Heroic Games Launcher, etc.).
+      description: Select the launcher used to install the game. For non-Steam games, specify the store and installation tool (e.g., Lutris, Heroic Games Launcher).
       options:
         - Steam
         - Heroic Games Launcher
@@ -60,7 +60,7 @@ body:
     validations:
       required: true
 
-  # -- SETUP EXPERIENCE --
+  # -- PERFORMANCE TARGETS --
   - type: markdown
     attributes:
       value: |
@@ -68,7 +68,7 @@ body:
         <br/>
         <br/>
 
-        ## Setup Experience
+        ## Performance Targets
 
         <br/>
   #   > Device Compatibility
@@ -76,7 +76,7 @@ body:
     id: device_compatibility
     attributes:
       label: Device Compatibility
-      description: What was your experience with this game's compatibility with your Device?
+      description: Rate how well the game performed on your device. This aligns with Valve's "Verified" status but allows you to share your own experience.
       options:
         - Verified
         - Playable
@@ -89,7 +89,7 @@ body:
     id: target_framerate
     attributes:
       label: Target Framerate
-      description: What framerate were you targeting?
+      description: Choose the framerate you were aiming for during gameplay.
       options:
         - <30 FPS
         - 30-39 FPS
@@ -99,6 +99,14 @@ body:
       default: 4
     validations:
       required: true
+  #   > Average Battery Power Draw
+  - type: input
+    id: average_battery_power_draw
+    attributes:
+      label: Average Battery Power Draw
+      description: Open the in-game performance overlay, record the average BATT wattage over a few minutes of gameplay with your settings, and enter only the number (no units).
+    validations:
+      required: false
 
   # -- HARDWARE CONFIGURATION --
   - type: markdown
@@ -137,7 +145,7 @@ body:
       value: 3.6.20
     validations:
       required: true
-  #   > Steam Deck Undervolt
+  #   > Undervolt Applied
   - type: input
     id: undervolt_applied
     attributes:
@@ -217,7 +225,7 @@ body:
       required: false
   #   >
 
-  # -- STEAM DECK PERFORMANCE SETTINGS --
+  # -- STEAMOS PERFORMANCE SETTINGS --
   - type: markdown
     attributes:
       value: |
@@ -225,7 +233,7 @@ body:
         <br/>
         <br/>
 
-        ## Steam Deck Performance Settings
+        ## SteamOS Performance Settings
 
         <br/>
   #   > Frame Limit
@@ -233,7 +241,7 @@ body:
     id: frame_limit
     attributes:
       label: Frame Limit
-      description: If you applied a frame limit value, what value did you set? Write only the number without any unit of measure. Leave blank if no frame limit was set.
+      description: Enter the frame limit value you set (number only, no units). Leave blank if no frame limit was applied.
     validations:
       required: false
   #   > Disable Frame Limit
@@ -241,7 +249,7 @@ body:
     id: disable_frame_limit
     attributes:
       label: Disable Frame Limit
-      description: Did you enable the "Disable Frame Limit" option?
+      description: Select whether "Disable Frame Limit" is enabled.
       options:
         - "Off"
         - "On"
@@ -253,7 +261,7 @@ body:
     id: enable_vrr
     attributes:
       label: Enable VRR
-      description: Did you enable the "Enable VRR" option?
+      description: Select whether "Enable VRR" is enabled.
       options:
         - "Off"
         - "On"
@@ -265,7 +273,7 @@ body:
     id: allow_tearing
     attributes:
       label: Allow Tearing
-      description: Did you enable the "Allow Tearing" option?
+      description: Select whether "Allow Tearing" is enabled.
       options:
         - "Off"
         - "On"
@@ -277,7 +285,7 @@ body:
     id: half_rate_shading
     attributes:
       label: Half Rate Shading
-      description: Did you enable the "Half Rate Shading" option?
+      description: Select whether "Half Rate Shading" is enabled.
       options:
         - "Off"
         - "On"
@@ -289,7 +297,7 @@ body:
     id: tdp_limit
     attributes:
       label: TDP Limit
-      description: If you applied a TDP limit value, what value did you set? Write only the number without any unit of measure. Leave blank if no TDP limit was set.
+      description: Enter the TDP limit value (number only, no units). Leave blank if not set.
     validations:
       required: false
   #   > Manual GPU Clock
@@ -297,7 +305,7 @@ body:
     id: manual_gpu_clock
     attributes:
       label: Manual GPU Clock
-      description: If you applied a manual GPU clock value, what value did you set? Write only the number without any unit of measure. Leave blank if no manual GPU clock was set.
+      description: Enter the manual GPU clock value (number only, no units). Leave blank if not set.
     validations:
       required: false
   #   > Scaling Mode
@@ -305,7 +313,7 @@ body:
     id: scaling_mode
     attributes:
       label: Scaling Mode
-      description: Did you set the Scaling Mode?
+      description: Select the Scaling Mode.
       options:
         - Auto
         - Integer
@@ -320,7 +328,7 @@ body:
     id: scaling_filter
     attributes:
       label: Scaling Filter
-      description: Did you set the Scaling Filter?
+      description: Select the Scaling Filter.
       options:
         - Linear
         - Pixel
@@ -344,13 +352,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        Notes on formatting your Display and Graphics settings:
-        - Match the format shown in the game as closely as possible.
-        - Use markdown for formatting:
-          - Separate each section with a level 4 heading (prefix with `####`).
-          - List options with bold labels (use double asterisks, e.g., (`**Setting Option Name:**`).
-        - If the game doesn't separate "Display" or "Graphics" options, enter the details under the **Display** section below.
-        - If no "Display" or "Graphics" settings exist, just add the resolution used under the **Display** section below.
+        Formatting notes for Display and Graphics settings:
+        - Match the in-game format as closely as possible.
+        - Use the styling buttons to add **bold** text and unordered lists for each in-game settings option.
+        - Alternatively, use markdown for formatting:
+            - Separate sections with level 4 headings (`####`).
+            - Use bold labels (`**Setting Option Name:**`) for options.
+        - If the game lacks "Display" or "Graphics" options, list resolution details under the **Display** section below.
+        - If settings aren't separated, include all details under the **Display** section below.
 
         Example:
         ```
@@ -362,7 +371,7 @@ body:
     id: game_display_settings
     attributes:
       label: Game Display Settings
-      description: Use markdown to show the display settings used in game.
+      description: Use the styling buttons or markdown to format display settings.
     validations:
       required: true
   #   > Graphics
@@ -370,7 +379,7 @@ body:
     id: game_graphics_settings
     attributes:
       label: Game Graphics Settings
-      description: Use markdown to show the graphics settings used in game.
+      description: Use the styling buttons or markdown to format graphics settings.
     validations:
       required: false
 
@@ -389,6 +398,6 @@ body:
     id: additional_notes
     attributes:
       label: Additional Notes
-      description: Any additional notes about the game.
+      description: Add any additional notes.
     validations:
       required: false

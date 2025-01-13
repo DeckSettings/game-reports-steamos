@@ -1,0 +1,60 @@
+{
+    "devices": [
+        {
+            "name": "Steam Deck LCD (64GB)",
+            "battery_size_wh": 40,
+            "max_display_resolution": "1280x800",
+            "max_refresh_rate": 60,
+            "supports_vrr": false,
+            "max_tdp_w": 15
+        },
+        {
+            "name": "Steam Deck LCD (256GB/512GB)",
+            "battery_size_wh": 40,
+            "max_display_resolution": "1280x800",
+            "max_refresh_rate": 60,
+            "supports_vrr": false,
+            "max_tdp_w": 15
+        },
+        {
+            "name": "Steam Deck OLED",
+            "battery_size_wh": 50,
+            "max_display_resolution": "1920x1080",
+            "max_refresh_rate": 90,
+            "supports_vrr": false,
+            "max_tdp_w": 15
+        },
+        {
+            "name": "ROG Ally Z1",
+            "battery_size_wh": 40.3,
+            "max_display_resolution": "1920x1080",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 30
+        },
+        {
+            "name": "ROG Ally Z1 Extreme",
+            "battery_size_wh": 40.3,
+            "max_display_resolution": "1920x1080",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 30
+        },
+        {
+            "name": "ROG Ally X",
+            "battery_size_wh": 80,
+            "max_display_resolution": "1920x1080",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 30
+        },
+        {
+            "name": "Legion Go",
+            "battery_size_wh": 49.2,
+            "max_display_resolution": "2560x1600",
+            "max_refresh_rate": 144,
+            "supports_vrr": false,
+            "max_tdp_w": 30
+        }
+    ]
+}
