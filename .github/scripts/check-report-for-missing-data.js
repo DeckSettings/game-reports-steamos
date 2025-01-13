@@ -4,8 +4,8 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 2nd January 2025 11:05:14 am
- * Modified By: Josh5 (jsunnex@gmail.com)
+ * Last Modified: Tuesday, 14th January 2025 8:55:15 am
+ * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
 import { Octokit } from "@octokit/rest";
@@ -57,6 +57,10 @@ async function processIssue(owner, repo, issue) {
 
     // Skip adding to reportData if "_No response_"
     if (extractedValue === "_No response_") {
+      continue;
+    }
+    // Skip optional fields if they are missing but also not required
+    if (!value.required && !extractedValue) {
       continue;
     }
     // Convert to number if schema expects a number
