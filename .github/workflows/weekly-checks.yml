@@ -28,6 +28,8 @@ jobs:
 
       - name: "Check all open issues for incomplete template"
         uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
