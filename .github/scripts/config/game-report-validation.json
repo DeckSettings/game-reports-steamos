@@ -32,15 +32,6 @@
                 "Other"
             ]
         },
-        "Device Compatibility": {
-            "description": "Compatibility of the game with your device.",
-            "type": "string",
-            "enum": [
-                "Verified",
-                "Playable",
-                "Unsupported"
-            ]
-        },
         "Target Framerate": {
             "description": "Target framerate for the game.",
             "type": "string",
@@ -236,7 +227,6 @@
         "Summary",
         "Game Name",
         "Launcher",
-        "Device Compatibility",
         "Target Framerate",
         "Device",
         "OS Version",

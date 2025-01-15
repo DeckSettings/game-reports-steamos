@@ -71,19 +71,6 @@ body:
         ## Performance Targets
 
         <br/>
-  #   > Device Compatibility
-  - type: dropdown
-    id: device_compatibility
-    attributes:
-      label: Device Compatibility
-      description: Rate how well the game performed on your device. This aligns with Valve's "Verified" status but allows you to share your own experience.
-      options:
-        - Verified
-        - Playable
-        - Unsupported
-      default: 0
-    validations:
-      required: true
   #   > Target framerate
   - type: dropdown
     id: target_framerate
