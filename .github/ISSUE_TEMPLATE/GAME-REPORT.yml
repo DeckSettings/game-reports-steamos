@@ -221,6 +221,7 @@ body:
         - Glorious Eggroll Proton (GE)
         - Luxtorpeda
         - Boxtron
+        - Steam Linux Runtime
       default: 0
     validations:
       required: true
@@ -230,6 +231,7 @@ body:
     attributes:
       label: Compatibility Tool Version
       description: What version of the above compatibility tool are you running? Write "default" if using the default Proton provided by Steam.
+      value: default
     validations:
       required: true
   #   > Game Resolution
