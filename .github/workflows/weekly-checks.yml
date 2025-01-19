@@ -2,7 +2,8 @@ name: "Weekly Game Reports Check"
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    # Run weekly on Friday
+    - cron: "0 0 * * 5"
 
 jobs:
   weekly-check-report-for-missing-data:
