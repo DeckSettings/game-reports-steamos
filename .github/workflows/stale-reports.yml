@@ -1,0 +1,23 @@
+name: "Cleanup Stale Invalid Game Reports"
+
+on:
+  schedule:
+    # Run daily
+    - cron: "00 00 * * *"
+
+jobs:
+  stale:
+    name: Check Stale Invalid Game Reports
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invalid Template
+        uses: actions/stale@v9
+        with:
+          close-issue-message: >
+            This report was closed because it has not been correct after 5 days of being marked as incomplete.
+          days-before-stale: 0
+          days-before-close: 5
+          only-labels: "invalid:template-incomplete"
+          stale-issue-label: "invalid:template-incomplete"
+          stale-issue-message: >
+            Invalid report template.
