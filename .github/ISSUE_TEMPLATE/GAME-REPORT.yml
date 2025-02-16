@@ -239,7 +239,7 @@ body:
     id: game_resolution
     attributes:
       label: Game Resolution
-      description: Did you configure a custom game resolution?
+      description: "This refers to any custom game resolution configured **before launching the game** from the Steam game properties window. It does **not** refer to the in-game resolution settings. If no custom resolution was set, leave this as 'Default'."
       options:
         - Default
         - Native
