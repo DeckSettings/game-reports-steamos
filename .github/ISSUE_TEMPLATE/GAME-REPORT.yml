@@ -70,6 +70,9 @@ body:
 
         ## Performance Targets
 
+        **This section is for reporting your performance goals and power usage during gameplay.**  
+        Specify the framerate you were aiming for and, if possible, the average battery power draw as measured in the in-game performance overlay.
+
         <br/>
   #   > Target framerate
   - type: dropdown
@@ -210,6 +213,11 @@ body:
         ## SteamOS Game Properties
 
         <br/>
+
+        **This section is for settings configured in the Steam client before launching the game.** 
+        These options are found in the **Steam UI (Game Mode)** by navigating to the game, then selecting the **⚙️ Settings button → Properties**.  
+
+        <br/>
   #   > Steam Play Compatibility Tool Used
   - type: dropdown
     id: steam_play_compatibility_tool_used
@@ -281,6 +289,12 @@ body:
         <br/>
 
         ## SteamOS Performance Settings
+
+        <br/>
+
+        **This section is for performance settings configured in the Quick Access Menu (QAM).**  
+        These options can be found by pressing the **"..." (Quick Access Menu) button** on your Steam Deck  
+        and navigating to **Performance → Advanced View**.
 
         <br/>
   #   > Frame Limit
@@ -396,9 +410,7 @@ body:
         ## In-Game Settings
 
         <br/>
-  - type: markdown
-    attributes:
-      value: |
+
         Formatting notes for Display and Graphics settings:
         - Match the in-game format as closely as possible.
         - Use the styling buttons to add **bold** text and unordered lists for each in-game settings option.
@@ -413,6 +425,8 @@ body:
         #### Section
         - **Option1:** enabled
         ```
+
+        <br/>
   #   > Display
   - type: textarea
     id: game_display_settings
