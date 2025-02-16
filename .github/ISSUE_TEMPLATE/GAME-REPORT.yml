@@ -441,6 +441,23 @@ body:
         ## Additional Notes
 
         <br/>
+
+        You can use this section to add any extra details that may help others understand your report.
+
+        ### Embedding a YouTube Video 🎥
+        - If you include a **YouTube link** anywhere in this section, the website will automatically extract the video ID and embed the video at the bottom of the report.
+        - Simply paste the full YouTube link (e.g., `https://www.youtube.com/watch?v=fcLv_kxtH94` or `https://youtu.be/fcLv_kxtH94`).
+        - This is a great way to provide a visual demonstration of gameplay performance, settings, or issues.
+
+        ### Using Shields.io Buttons 🛡️
+        - If you prefer not to embed a video, consider using a **Shields.io button** instead.
+        - Example of a **YouTube video button** in markdown:
+          ```
+          [![Video Guide](https://img.shields.io/badge/Video%20Guide-FF0000?logo=youtube)](https://www.youtube.com/watch?v=fcLv_kxtH94)
+          ```
+        - This creates a clickable badge that links to your video. If you wish to add tracking IDs to your YouTube link, this is the only option.
+
+        <br/>
   - type: textarea
     id: additional_notes
     attributes:
