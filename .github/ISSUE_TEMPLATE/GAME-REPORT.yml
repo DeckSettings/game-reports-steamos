@@ -460,7 +460,14 @@ body:
 
         ### Embedding a YouTube Video 🎥
         - If you include a **YouTube link** anywhere in this section, the website will automatically extract the video ID and embed the video at the bottom of the report.
-        - Simply paste the full YouTube link (e.g., `https://www.youtube.com/watch?v=fcLv_kxtH94` or `https://youtu.be/fcLv_kxtH94`).
+        - Simply paste the full YouTube link Eg:
+          ```
+          https://www.youtube.com/watch?v=fcLv_kxtH94
+          ```
+          or
+          ```
+          https://youtu.be/fcLv_kxtH94
+          ```
         - This is a great way to provide a visual demonstration of gameplay performance, settings, or issues.
 
         ### Using Shields.io Buttons 🛡️
