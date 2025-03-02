@@ -2,6 +2,9 @@
 
 blank_issues_enabled: false
 contact_links:
+  - name: New Device Request
+    url: https://github.com/DeckSettings/deck-verified-site/issues/new?template=NEW-DEVICE.yml
+    about: Request adding details for a new device.
   - name: Discord support
     url: https://streamingtech.co.nz/discord
     about: Ask questions in Discord.
