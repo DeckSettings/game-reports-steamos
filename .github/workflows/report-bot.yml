@@ -7,6 +7,9 @@ on:
 jobs:
   handle-reportbot-command:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     if: >
       contains(github.event.comment.body, '@/reportbot') &&
       !contains(github.event.comment.body, '[ReportBot Managed Comment]') &&
