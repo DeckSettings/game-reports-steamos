@@ -43,4 +43,5 @@ jobs:
           echo "${COMMENT_BODY:?}"
           echo "${COMMENTER:?}"
           echo "${ACTION_TYPE:?}"
-          echo node report-bot.js
+          echo "Link to trigger comment: https://github.com/${REPO_OWNER:?}/${REPO_NAME:?}/issues/${ISSUE_NUMBER:?}#issuecomment-${COMMENT_ID:?}"
+          node report-bot.js
