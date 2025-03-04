@@ -4,7 +4,7 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 4th March 2025 5:47:53 pm
+ * Last Modified: Tuesday, 4th March 2025 6:10:47 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -104,8 +104,8 @@ async function run() {
       owner,
       repo,
       issueNumber,
-      `@${commenter} Invalid command provided. Use a recognized @/reportbot command.`,
-      commentId
+      commentId,
+      `@${commenter} Invalid command provided. Use a recognized @/reportbot command.`
     );
     return;
   }
@@ -126,15 +126,21 @@ async function run() {
         owner,
         repo,
         issueNumber,
-        `@${commenter} you cannot instantiate a bot command without providing details for the reporter to action.`,
-        commentId
+        commentId,
+        `@${commenter} you cannot instantiate a bot command without providing details for the reporter to action.`
       );
       return;
     }
 
     // Apply the label to the issue if applicable
     if (commandConfig.label) {
-      await applyLabel(owner, repo, issueNumber, commandConfig.label);
+      await applyLabel(
+        owner,
+        repo,
+        issueNumber,
+        commentId,
+        commandConfig.label
+      );
     }
 
     // Execute special actions if defined (WIP)
@@ -149,12 +155,6 @@ async function run() {
     // TODO: Fix this.. This is not working for some reason
     //await addReaction(owner, repo, commentId);
   } else if (action === "deleted") {
-    if (commandConfig.label) {
-      console.log(
-        `Attempting to delete label: ${commandConfig.label} from issue #${issueNumber}.`
-      );
-      await removeLabel(owner, repo, issueNumber, commandConfig.label);
-    }
     await removeReplyComments(owner, repo, issueNumber, commentId);
   }
 }
@@ -173,14 +173,24 @@ async function postHelpComment(owner, repo, issueNumber, commentId) {
 
   const helpMessage = `Here are the available commands for ReportBot:\n\n${helpText}`;
 
-  await postComment(owner, repo, issueNumber, helpMessage, commentId);
+  await postComment(owner, repo, issueNumber, commentId, helpMessage);
 }
 
 // Function to post a comment on the issue
-async function postComment(owner, repo, issueNumber, body, originalCommentId) {
+async function postComment(
+  owner,
+  repo,
+  issueNumber,
+  originalCommentId,
+  body,
+  actionLog
+) {
   const header = `*${BOT_COMMENT_HEADER}*\n\n---\n\n`;
   const commentLink = `https://github.com/${owner}/${repo}/issues/${issueNumber}#issuecomment-${originalCommentId}`;
-  const footer = `\n\n---\n\n*This comment was triggered by comment ID: ${originalCommentId} ([link](${commentLink})).*\n*When you are done with this information, delete your original comment to clean up my messages.*\n`;
+  let footer = `\n\n---\n\n*This comment was triggered by comment ID: ${originalCommentId} ([link](${commentLink})).*\n*When you are done with this information, delete your original comment to clean up my messages.*`;
+  if (actionLog) {
+    footer = `${footer}\n\n---\n\n> ${actionLog}`;
+  }
 
   try {
     console.log(`Posting comment: ${body}`);
@@ -211,7 +221,7 @@ async function addReaction(owner, repo, commentId) {
 }
 
 // Add bot label
-async function applyLabel(owner, repo, issueNumber, label) {
+async function applyLabel(owner, repo, issueNumber, commentId, label) {
   try {
     await octokit.issues.addLabels({
       owner,
@@ -220,6 +230,14 @@ async function applyLabel(owner, repo, issueNumber, label) {
       labels: [label],
     });
     console.log(`Added label "${label}" to issue #${issueNumber}`);
+    await postComment(
+      owner,
+      repo,
+      issueNumber,
+      commentId,
+      `Label "${label}" applied`,
+      `ACTION=add_label LABEL=${label}`
+    );
   } catch (error) {
     console.error(`Error adding label: ${error.message}`);
   }
@@ -262,6 +280,21 @@ async function removeReplyComments(
   );
 
   for (const comment of botComments) {
+    // Parse action log to undo anything
+    const actionMatch = comment.body.match(/> ACTION=(\w+) LABEL=(\S+)/);
+    if (actionMatch) {
+      console.log(`Found action log in comment body`);
+      const action = actionMatch[1];
+      const label = actionMatch[2];
+
+      if (action === "add_label") {
+        console.log(
+          `Undoing "add_label" action: Removing label "${label}" from issue #${issueNumber}`
+        );
+        await removeLabel(owner, repo, issueNumber, label);
+      }
+    }
+
     try {
       await octokit.issues.deleteComment({
         owner,
