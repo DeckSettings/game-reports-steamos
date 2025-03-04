@@ -1,0 +1,45 @@
+name: ReportBot
+
+on:
+  issue_comment:
+    types: [created, edited, deleted]
+
+jobs:
+  handle-reportbot-command:
+    runs-on: ubuntu-latest
+    if: >
+      contains(github.event.comment.body, '@/reportbot') &&
+      github.event.issue.pull_request == null
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: ".github/scripts/package-lock.json"
+
+      - name: "Install dependencies"
+        working-directory: .github/scripts
+        run: |
+          npm ci
+
+      - name: "Run ReportBot"
+        working-directory: .github/scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          ACTION_TYPE: ${{ github.event.action }}
+        run: |
+          echo ${COMMENT_ID:?}
+          echo ${COMMENT_BODY:?}
+          echo ${COMMENTER:?}
+          echo ${ACTION_TYPE:?}
+          echo node report-bot.js
