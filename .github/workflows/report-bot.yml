@@ -2,13 +2,14 @@ name: ReportBot
 
 on:
   issue_comment:
-    types: [created, edited, deleted]
+    types: [created, deleted]
 
 jobs:
   handle-reportbot-command:
     runs-on: ubuntu-latest
     if: >
       contains(github.event.comment.body, '@/reportbot') &&
+      !contains(github.event.comment.body, '[ReportBot Managed Comment]') &&
       github.event.issue.pull_request == null
     steps:
       - name: Checkout Repository
@@ -38,8 +39,8 @@ jobs:
           COMMENTER: ${{ github.event.comment.user.login }}
           ACTION_TYPE: ${{ github.event.action }}
         run: |
-          echo ${COMMENT_ID:?}
-          echo ${COMMENT_BODY:?}
-          echo ${COMMENTER:?}
-          echo ${ACTION_TYPE:?}
+          echo "${COMMENT_ID:?}"
+          echo "${COMMENT_BODY:?}"
+          echo "${COMMENTER:?}"
+          echo "${ACTION_TYPE:?}"
           echo node report-bot.js
