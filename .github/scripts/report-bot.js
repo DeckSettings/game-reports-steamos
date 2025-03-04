@@ -4,7 +4,7 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 4th March 2025 6:10:47 pm
+ * Last Modified: Tuesday, 4th March 2025 6:26:27 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -165,15 +165,22 @@ async function postHelpComment(owner, repo, issueNumber, commentId) {
     .filter(([_, config]) => config.role != "maintainer") // Exclude maintainer-only commands
     .map(
       ([command, config]) =>
-        `- \`@/reportbot ${command}\`: ${
+        `- \`@/reportbot ${command}\`\n  - ${
           config.description || "No description available."
         }`
     )
     .join("\n");
 
   const helpMessage = `Here are the available commands for ReportBot:\n\n${helpText}`;
+  const helpFooter = `***Important:*** You cannot submit a command without providing additional information. Always include specific details to help the reporter address your suggestion.`;
 
-  await postComment(owner, repo, issueNumber, commentId, helpMessage);
+  await postComment(
+    owner,
+    repo,
+    issueNumber,
+    commentId,
+    `${helpMessage}\n\n\n${helpFooter}`
+  );
 }
 
 // Function to post a comment on the issue
