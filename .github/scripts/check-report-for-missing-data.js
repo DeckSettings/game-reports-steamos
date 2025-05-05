@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 14th January 2025 8:55:15 am
+ * Last Modified: Monday, 5th May 2025 12:26:07 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -116,6 +116,9 @@ async function processIssue(owner, repo, issue) {
     console.log("✔ Issue passes schema validation.");
     await removeValidationComments(owner, repo, issue.number);
     await removeIncompleteLabel(owner, repo, issue.number);
+    if (issue.state === "closed") {
+      await openPreviouslyClosedIssue(owner, repo, issue.number);
+    }
   }
 }
 
@@ -217,7 +220,33 @@ async function removeIncompleteLabel(owner, repo, issueNumber) {
       `Removed label "${incompleteLabel}" from issue #${issueNumber}`
     );
   } catch (error) {
-    console.log(`Label not present on issue #${issueNumber}`);
+    console.error(`Label not present on issue #${issueNumber}`);
+  }
+}
+
+// Re-open previously closed issue
+async function openPreviouslyClosedIssue(owner, repo, issueNumber) {
+  try {
+    console.log(`Reopening issue #${issue.number} — now valid.`);
+    await octokit.issues.update({
+      owner,
+      repo,
+      issue_number: issue.number,
+      state: "open",
+    });
+
+    await octokit.issues.createComment({
+      owner,
+      repo,
+      issue_number: issue.number,
+      body:
+        "Thanks for updating the report — this issue has now been reopened because all required sections appear to be complete. 🙌\n\n" +
+        "If you have further questions or want help improving your report, feel free to reply here or reach out on Discord: **https://streamingtech.co.nz/discord**",
+    });
+  } catch (error) {
+    console.error(
+      `Error when re-opening issue #${issueNumber}: ${error.message}`
+    );
   }
 }
 

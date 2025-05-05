@@ -9,15 +9,34 @@ jobs:
   stale:
     name: Check Stale Invalid Game Reports
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
-      - name: Invalid Template
-        uses: actions/stale@v9
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          close-issue-message: >
-            This report was closed because it has not been correct after 5 days of being marked as incomplete.
-          days-before-stale: 0
-          days-before-close: 5
-          only-labels: "invalid:template-incomplete"
-          stale-issue-label: "invalid:template-incomplete"
-          stale-issue-message: >
-            Invalid report template.
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: ".github/scripts/package-lock.json"
+
+      - name: "Install dependencies"
+        working-directory: .github/scripts
+        run: |
+          npm ci
+
+      - name: "Check all open issues for incomplete template"
+        uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { execSync } = require('child_process');
+            execSync(
+              `GITHUB_TOKEN=${process.env.GITHUB_TOKEN} REPO_OWNER=${context.repo.owner} REPO_NAME=${context.repo.repo} node close-stale-incomplete-reports.js`,
+              { stdio: 'inherit', cwd: '.github/scripts' }
+            );
