@@ -190,7 +190,7 @@ body:
     attributes:
       label: OS Version
       description: "Specify the version of SteamOS you are running. For other Linux distributions (e.g., SteamFork, Nobara, ChimeraOS), provide the distro name and version in the format `<DISTRO>_<VERSION>` (e.g., `ChimeraOS_46-2`). If the distro is a rolling release and does not have a version, just specify the name (e.g., `CachyOS`)."
-      value: 3.6.21
+      value: 3.7.8
     validations:
       required: true
   #   > Undervolt Applied
@@ -393,8 +393,7 @@ body:
       options:
         - Linear
         - Pixel
-        - FSR
-        - NIS
+        - Sharp
       default: 0
     validations:
       required: false
