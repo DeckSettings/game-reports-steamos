@@ -485,3 +485,22 @@ body:
       description: Add any additional notes.
     validations:
       required: false
+  #   > Performance Rating
+  - type: dropdown
+    id: performance_rating
+    attributes:
+      label: Performance Rating
+      description: >
+        Rate the game’s overall performance on your device.  
+        ★☆☆☆☆ (1/5) = very poor performance, ★★★★★ (5/5) = excellent performance.  
+        Leave as "Unrated" if you don't wish to provide a performance rating.
+      options:
+        - Unrated
+        - ★☆☆☆☆ (1/5)
+        - ★★☆☆☆ (2/5)
+        - ★★★☆☆ (3/5)
+        - ★★★★☆ (4/5)
+        - ★★★★★ (5/5)
+      default: 0
+    validations:
+      required: false
