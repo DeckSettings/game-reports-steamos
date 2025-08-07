@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Monday, 5th May 2025 12:26:07 pm
+ * Last Modified: Thursday, 7th August 2025 4:54:15 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -83,12 +83,17 @@ async function processIssue(owner, repo, issue) {
         sectionContent.split(/\r?\n/)
       );
       if (invalidLines.length > 0) {
-        errors.push(
-          ...invalidLines.map(
-            (line) =>
-              `Invalid markdown for in-game settings in section '${section}' (Line ${line.lineNumber}): \`${line.line}\``
-          )
-        );
+        invalidLines.forEach(({ line, lineNumber }) => {
+          errors.push(
+            `Invalid markdown for in-game settings in section '${section}' (Line ${lineNumber}): \`${line}\``
+          );
+          // if it’s an <img> tag, add the extra hint
+          if (/^<img\s+/.test(line.trim())) {
+            errors.push(
+              "Images can be placed in the 'Additional Notes' section."
+            );
+          }
+        });
       }
     }
   });
@@ -124,6 +129,9 @@ async function processIssue(owner, repo, issue) {
 
 // Additional checks for in-game settings markdown sections
 function validateGameSettingsMarkdownSection(lines) {
+  // Allow only:
+  //  • level-4 headings (#### …)
+  //  • list items (- **Label:** value)
   const validLineRegex = /^((####\s.*)|(-\s\*\*[^:]+:\*\*\s.*))$/;
   const invalidLines = [];
 
