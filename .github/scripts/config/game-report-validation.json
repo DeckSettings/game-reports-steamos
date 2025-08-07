@@ -248,6 +248,18 @@
         "Additional Notes": {
             "description": "Additional notes about the game.",
             "type": "string"
+        },
+        "Performance Rating": {
+            "description": "Performance Rating.",
+            "type": "string",
+            "enum": [
+                "Unrated",
+                "★☆☆☆☆ (1/5)",
+                "★★☆☆☆ (2/5)",
+                "★★★☆☆ (3/5)",
+                "★★★★☆ (4/5)",
+                "★★★★★ (5/5)"
+            ]
         }
     },
     "required": [
