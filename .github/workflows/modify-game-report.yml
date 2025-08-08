@@ -59,37 +59,6 @@ jobs:
         run: |
           node update-issue-labels.js
 
-  check-report-for-missing-data:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: '.github/scripts/package-lock.json'
-
-      - name: 'Install dependencies'
-        working-directory: .github/scripts
-        run: |
-          npm ci
-
-      - name: 'Check report for missing data'
-        working-directory: .github/scripts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: |
-          node check-report-for-missing-data.js
-
   manage-report-images:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
@@ -122,3 +91,35 @@ jobs:
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           node manage-report-images.js
+
+  check-report-for-missing-data:
+    needs: manage-report-images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: '.github/scripts/package-lock.json'
+
+      - name: 'Install dependencies'
+        working-directory: .github/scripts
+        run: |
+          npm ci
+
+      - name: 'Check report for missing data'
+        working-directory: .github/scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          node check-report-for-missing-data.js
