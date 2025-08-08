@@ -1,6 +1,6 @@
-name: "Game Report"
-description: "File a game report"
-title: "(Placeholder - Issue title will be automatically populated with the information provided below on submit)"
+name: 'Game Report'
+description: 'File a game report'
+title: '(Placeholder - Issue title will be automatically populated with the information provided below on submit)'
 body:
   - type: markdown
     attributes:
@@ -96,62 +96,62 @@ body:
       label: Average Battery Power Draw
       description: Open the in-game performance overlay, record the average BATT wattage over a few minutes of gameplay with your settings, and enter only the number (no units).
       options:
-        - "Unknown"
-        - "1"
-        - "2"
-        - "3"
-        - "4"
-        - "5"
-        - "6"
-        - "7"
-        - "8"
-        - "9"
-        - "10"
-        - "11"
-        - "12"
-        - "13"
-        - "14"
-        - "15"
-        - "16"
-        - "17"
-        - "18"
-        - "19"
-        - "20"
-        - "21"
-        - "22"
-        - "23"
-        - "24"
-        - "25"
-        - "26"
-        - "27"
-        - "28"
-        - "29"
-        - "30"
-        - "31"
-        - "32"
-        - "33"
-        - "34"
-        - "35"
-        - "36"
-        - "37"
-        - "38"
-        - "39"
-        - "40"
-        - "41"
-        - "42"
-        - "43"
-        - "44"
-        - "45"
-        - "46"
-        - "47"
-        - "48"
-        - "49"
-        - "50"
-        - "51"
-        - "52"
-        - "53"
-        - "54"
-        - "55"
+        - 'Unknown'
+        - '1'
+        - '2'
+        - '3'
+        - '4'
+        - '5'
+        - '6'
+        - '7'
+        - '8'
+        - '9'
+        - '10'
+        - '11'
+        - '12'
+        - '13'
+        - '14'
+        - '15'
+        - '16'
+        - '17'
+        - '18'
+        - '19'
+        - '20'
+        - '21'
+        - '22'
+        - '23'
+        - '24'
+        - '25'
+        - '26'
+        - '27'
+        - '28'
+        - '29'
+        - '30'
+        - '31'
+        - '32'
+        - '33'
+        - '34'
+        - '35'
+        - '36'
+        - '37'
+        - '38'
+        - '39'
+        - '40'
+        - '41'
+        - '42'
+        - '43'
+        - '44'
+        - '45'
+        - '46'
+        - '47'
+        - '48'
+        - '49'
+        - '50'
+        - '51'
+        - '52'
+        - '53'
+        - '54'
+        - '55'
       default: 0
     validations:
       required: false
@@ -189,8 +189,8 @@ body:
     id: os_version
     attributes:
       label: OS Version
-      description: "Specify the version of SteamOS you are running. For other Linux distributions (e.g., SteamFork, Nobara, ChimeraOS), provide the distro name and version in the format `<DISTRO>_<VERSION>` (e.g., `ChimeraOS_46-2`). If the distro is a rolling release and does not have a version, just specify the name (e.g., `CachyOS`)."
-      value: 3.7.8
+      description: 'Specify the version of SteamOS you are running. For other Linux distributions (e.g., SteamFork, Nobara, ChimeraOS), provide the distro name and version in the format `<DISTRO>_<VERSION>` (e.g., `ChimeraOS_46-2`). If the distro is a rolling release and does not have a version, just specify the name (e.g., `CachyOS`).'
+      value: 3.7.13
     validations:
       required: true
   #   > Undervolt Applied
@@ -312,8 +312,8 @@ body:
       label: Disable Frame Limit
       description: Select whether "Disable Frame Limit" is enabled.
       options:
-        - "Off"
-        - "On"
+        - 'Off'
+        - 'On'
       default: 0
     validations:
       required: false
@@ -324,8 +324,8 @@ body:
       label: Enable VRR
       description: Select whether "Enable VRR" is enabled.
       options:
-        - "Off"
-        - "On"
+        - 'Off'
+        - 'On'
       default: 0
     validations:
       required: false
@@ -336,8 +336,8 @@ body:
       label: Allow Tearing
       description: Select whether "Allow Tearing" is enabled.
       options:
-        - "Off"
-        - "On"
+        - 'Off'
+        - 'On'
       default: 0
     validations:
       required: false
@@ -348,8 +348,8 @@ body:
       label: Half Rate Shading
       description: Select whether "Half Rate Shading" is enabled.
       options:
-        - "Off"
-        - "On"
+        - 'Off'
+        - 'On'
       default: 0
     validations:
       required: false
@@ -419,6 +419,12 @@ body:
         - If the game lacks "Display" or "Graphics" options, list resolution details under the **Display** section below.
         - If settings aren't separated, include all details under the **Display** section below.
 
+        > [!TIP]
+        > You can also upload one or more screenshots of your in-game settings here instead of typing them out manually.  
+        > Our GitHub Actions workflow can automatically read the text in your screenshots and populate the  
+        > **Game Display Settings** and **Game Graphics Settings** fields in your report — *but only if you do not manually enter any text in these fields*.  
+        > If you type settings and upload screenshots, your text will be kept and the automatic filling will not overwrite it.
+
         Example:
         ```
         #### Section
@@ -431,7 +437,7 @@ body:
     id: game_display_settings
     attributes:
       label: Game Display Settings
-      description: Use the styling buttons or markdown to format display settings.
+      description: Use the styling buttons or markdown to format display settings. You may also upload screenshots of your in-game settings here — we can read the text and fill in the Game Display/Graphics Settings for you.
     validations:
       required: true
   #   > Graphics
@@ -439,7 +445,7 @@ body:
     id: game_graphics_settings
     attributes:
       label: Game Graphics Settings
-      description: Use the styling buttons or markdown to format graphics settings.
+      description: Use the styling buttons or markdown to format graphics settings. If you uploaded screenshots above, these settings may be filled in automatically from your screenshots.
     validations:
       required: false
 

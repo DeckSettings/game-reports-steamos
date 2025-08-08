@@ -1,4 +1,4 @@
-name: "Issue Title Updater"
+name: 'Automations for Report Modifications'
 
 on:
   issues:
@@ -18,15 +18,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
-          cache-dependency-path: ".github/scripts/package-lock.json"
+          cache: 'npm'
+          cache-dependency-path: '.github/scripts/package-lock.json'
 
-      - name: "Install dependencies"
+      - name: 'Install dependencies'
         working-directory: .github/scripts
         run: |
           npm ci
 
-      - name: "Set Title from issue body"
+      - name: 'Set Title from issue body'
         working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -36,7 +36,7 @@ jobs:
         run: |
           node update-issue-title.js
 
-      - name: "Assign to project based on app ID"
+      - name: 'Assign to project based on app ID'
         working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -45,11 +45,11 @@ jobs:
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
           # Include ORG_LOGIN
-          ORG_LOGIN: "DeckSettings"
+          ORG_LOGIN: 'DeckSettings'
         run: |
           node assign-projects.js
 
-      - name: "Set labels from issue body"
+      - name: 'Set labels from issue body'
         working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -59,7 +59,8 @@ jobs:
         run: |
           node update-issue-labels.js
 
-  check-report-for-missing-data:
+  manage-report-images:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -72,15 +73,49 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
-          cache-dependency-path: ".github/scripts/package-lock.json"
+          cache: 'npm'
+          cache-dependency-path: '.github/scripts/package-lock.json'
 
-      - name: "Install dependencies"
+      - name: 'Install dependencies'
         working-directory: .github/scripts
         run: |
           npm ci
 
-      - name: "Check report for missing data"
+      - name: 'Parse report images and refactor as required'
+        working-directory: .github/scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OCR_API_ENDPOINT: ${{ secrets.OCR_API_ENDPOINT }}
+          OCR_API_KEY: ${{ secrets.OCR_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          node manage-report-images.js
+
+  check-report-for-missing-data:
+    needs: manage-report-images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: '.github/scripts/package-lock.json'
+
+      - name: 'Install dependencies'
+        working-directory: .github/scripts
+        run: |
+          npm ci
+
+      - name: 'Check report for missing data'
         working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
