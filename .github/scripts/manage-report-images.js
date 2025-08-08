@@ -4,7 +4,7 @@
  * File Created: Friday, 8th August 2025 12:30:32 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Friday, 8th August 2025 4:56:25 pm
+ * Last Modified: Friday, 8th August 2025 5:15:26 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -567,6 +567,10 @@ async function run() {
 
   if (!issueNumber || !owner || !repo) {
     console.error("Missing environment variables.");
+    process.exit(1);
+  }
+  if (!process.env.GITHUB_TOKEN) {
+    console.error("Missing GITHUB_TOKEN in environment.");
     process.exit(1);
   }
   if (!process.env.OPENAI_API_KEY) {
