@@ -4,17 +4,17 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 7th August 2025 4:54:15 pm
+ * Last Modified: Friday, 8th August 2025 12:50:53 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
 import { Octokit } from "@octokit/rest";
 import Ajv from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import { extractHeadingValue } from "./common.js";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { buildReportData } from "./common.js";
 
 dotenv.config(); // Load environment variables from .env for local testing
 
@@ -48,29 +48,9 @@ const incompleteLabel = "invalid:template-incomplete";
 // Validate and label issue
 async function processIssue(owner, repo, issue) {
   const body = issue.body || "";
-  const lines = body.split(/\r?\n/);
 
   // Build object based on extracted values
-  const reportData = {};
-  for (const [key, value] of Object.entries(validate.schema.properties)) {
-    let extractedValue = extractHeadingValue(lines, key);
-
-    // Skip adding to reportData if "_No response_"
-    if (extractedValue === "_No response_") {
-      continue;
-    }
-    // Skip optional fields if they are missing but also not required
-    if (!value.required && !extractedValue) {
-      continue;
-    }
-    // Convert to number if schema expects a number
-    if (value.type === "number" && extractedValue) {
-      const parsedValue = Number(extractedValue);
-      extractedValue = isNaN(parsedValue) ? extractedValue : parsedValue;
-    }
-    // Add to reportData object
-    reportData[key] = extractedValue;
-  }
+  const reportData = buildReportData(body, validate.schema.properties)
 
   // Build a list of errors
   const errors = [];

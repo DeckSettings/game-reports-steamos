@@ -1,0 +1,599 @@
+/**
+ * File: manage-report-images.js
+ * Project: scripts
+ * File Created: Friday, 8th August 2025 12:30:32 pm
+ * Author: Josh.5 (jsunnex@gmail.com)
+ * -----
+ * Last Modified: Friday, 8th August 2025 4:56:25 pm
+ * Modified By: Josh.5 (jsunnex@gmail.com)
+ */
+
+import { Octokit } from "@octokit/rest";
+import Ajv from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
+import fs from "fs";
+import path from "path";
+import dotenv from "dotenv";
+import https from "https";
+import http from "http";
+import OpenAI from "openai";
+import { buildReportData } from "./common.js";
+
+dotenv.config();
+
+const dryRun = process.env.DRY_RUN_MODE === "true" ?? false;
+console.log(dryRun ? "DRY_RUN_MODE enabled" : "DRY_RUN_MODE disabled");
+const ghActionsBotUser =
+  process.env.GH_ACTIONS_BOT_USER ?? "github-actions[bot]";
+console.log(`GH_ACTIONS_BOT_USER ${ghActionsBotUser}`);
+
+const octokit = new Octokit({
+  auth: process.env.GITHUB_TOKEN,
+});
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Initialise AJV for schema validation
+const ajv = new Ajv({ allErrors: true, strict: false });
+addFormats(ajv);
+
+// Read JSON schema
+let validate;
+try {
+  const configPath = path.resolve(
+    path.dirname(new URL(import.meta.url).pathname),
+    "config/game-report-validation.json"
+  );
+  const schema = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  validate = ajv.compile(schema);
+  console.log("Loaded validation schema from JSON.");
+} catch (error) {
+  console.error("Failed to load validation schema:", error);
+  process.exit(1);
+}
+
+// Label for incomplete templates
+const aiGeneratedContentLabel = "note:ai-generated-content";
+
+// === Helpers ===
+const mimeToExt = (mime) => {
+  if (!mime) return "png";
+  if (mime.includes("jpeg") || mime.includes("jpg")) return "jpeg";
+  if (mime.includes("png")) return "png";
+  if (mime.includes("webp")) return "webp";
+  return "png";
+};
+
+function httpGet(url) {
+  const client = url.startsWith("https") ? https : http;
+  return new Promise((resolve, reject) => {
+    client
+      .get(url, (res) => {
+        if (
+          res.statusCode &&
+          res.statusCode >= 300 &&
+          res.statusCode < 400 &&
+          res.headers.location
+        ) {
+          // follow redirects
+          return resolve(httpGet(res.headers.location));
+        }
+        if (res.statusCode !== 200) {
+          return reject(
+            new Error(`GET ${url} failed (status: ${res.statusCode})`)
+          );
+        }
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () =>
+          resolve({
+            buffer: Buffer.concat(chunks),
+            contentType: res.headers["content-type"] || "",
+          })
+        );
+      })
+      .on("error", reject);
+  });
+}
+
+async function fetchImageAsBase64(url, attempt = 1) {
+  try {
+    const { buffer, contentType } = await httpGet(url);
+    const ext = mimeToExt(contentType);
+    return `data:image/${ext};base64,${buffer.toString("base64")}`;
+  } catch (err) {
+    if (attempt < 3) {
+      const backoff = 300 * attempt;
+      await new Promise((r) => setTimeout(r, backoff));
+      return fetchImageAsBase64(url, attempt + 1);
+    }
+    throw err;
+  }
+}
+
+function extractJsonFromText(text) {
+  // Strip ```json ... ``` if present
+  const fence = /```json([\s\S]*?)```/i;
+  const m = text.match(fence);
+  const raw = m ? m[1].trim() : text.trim();
+  return JSON.parse(raw);
+}
+
+async function extractSettingsFromImages(urls) {
+  // Batch if you want (kept simple here; increase if needed)
+  const imagesBase64 = await Promise.all(urls.map(fetchImageAsBase64));
+
+  const prompt = `
+You are given one or more screenshots from a game's settings menu.
+Return ONLY a JSON object exactly like:
+
+{
+  "game_display_settings": "<MARKDOWN LIST STRING>",
+  "game_graphics_settings": "<MARKDOWN LIST STRING OR null>"
+}
+
+Rules:
+- If only one block of settings exists, put all in game_display_settings and set game_graphics_settings to null.
+- If there are separate sections (e.g., Display vs Graphics), split accordingly.
+- Markdown formatting:
+  - Section headers: #### SECTION NAME (all caps)
+  - Options: - **OPTION NAME:** value
+  - OPTION NAME must be uppercase, value plain text.
+- Preserve visual order from the images.
+- Combine data across images that belong to the same menu.
+- When interpreting control types:
+  - For checkboxes, use "Enabled" or "Disabled" (prefer these terms over "On"/"Off").
+  - For toggles or switches, use "On" or "Off".
+- Output ONLY the JSON (no extra prose).
+`;
+
+  const resp = await openai.chat.completions.create({
+    model: "gpt-5-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You convert game settings screenshots into structured JSON with markdown values.",
+      },
+      { role: "user", content: prompt },
+      ...imagesBase64.map((b64) => ({
+        role: "user",
+        content: [{ type: "image_url", image_url: { url: b64 } }],
+      })),
+    ],
+  });
+
+  const raw = resp.choices[0]?.message?.content || "";
+  try {
+    return extractJsonFromText(raw);
+  } catch (err) {
+    console.error("Failed to parse JSON from GPT response");
+    console.error("Raw response:", raw);
+    throw err;
+  }
+}
+
+function findImageUrls(markdown = "") {
+  const urls = [];
+
+  // <img ... src="...">
+  const htmlImg = /<img[^>]*\s src=["']([^"'>\s]+)["'][^>]*>/gi;
+  let m;
+  while ((m = htmlImg.exec(markdown)) !== null) urls.push(m[1]);
+
+  // ![alt](url "title"?)  (title optional)
+  const mdImg = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/gi;
+  while ((m = mdImg.exec(markdown)) !== null) urls.push(m[1]);
+
+  return urls;
+}
+
+function hasEmpty(text) {
+  const t = (text || "").trim();
+  return t.length === 0 || t === "_No response_";
+}
+
+function findSectionRange(body, heading) {
+  const lines = body.split(/\r?\n/);
+  const h = `### ${heading}`.toLowerCase();
+  const startIdx = lines.findIndex((l) => l.trim().toLowerCase() === h);
+  if (startIdx === -1) return null;
+
+  let endIdx = lines.length; // exclusive
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    if (lines[i].trim().startsWith("### ")) {
+      endIdx = i;
+      break;
+    }
+  }
+  return { lines, startIdx, endIdx };
+}
+
+function getSectionContent(body, heading) {
+  const r = findSectionRange(body, heading);
+  if (!r) return null;
+  const { lines, startIdx, endIdx } = r;
+  return lines
+    .slice(startIdx + 1, endIdx)
+    .join("\n")
+    .trim();
+}
+
+function setSectionContent(body, heading, newContent) {
+  const lines = body.split(/\r?\n/);
+  const r = findSectionRange(body, heading);
+  if (!r) {
+    // create section at end
+    const block = [
+      `### ${heading}`,
+      "",
+      ...(newContent ? [newContent] : ["_No response_"]),
+      "",
+    ].join("\n");
+    return (lines.join("\n") + "\n\n" + block).trimEnd() + "\n";
+  }
+  const { startIdx, endIdx } = r;
+  const before = lines.slice(0, startIdx + 1); // include heading line
+  const after = lines.slice(endIdx);
+  const middle =
+    newContent && newContent.trim().length ? newContent : "_No response_";
+  return [...before, "", middle, "", ...after]
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+function stripImages(markdown = "") {
+  const htmlImg = /<img[^>]*\s src=["']([^"'>\s]+)["'][^>]*>/gi;
+  const mdImg = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/gi;
+  const urls = [];
+  let m;
+  while ((m = htmlImg.exec(markdown)) !== null) urls.push(m[1]);
+  while ((m = mdImg.exec(markdown)) !== null) urls.push(m[1]);
+  const withoutHtml = markdown.replace(htmlImg, "").trim();
+  const withoutAny = withoutHtml.replace(mdImg, "").trim();
+  return { cleaned: withoutAny, urls };
+}
+
+function uniq(arr) {
+  return Array.from(new Set(arr));
+}
+
+// Generate a section body with the provided markdown content
+function generateReportSectionMarkdown(content) {
+  const newContent = (content || "").trim();
+  if (newContent.length === 0) return "_No response_";
+  return newContent;
+}
+
+// Re-write the issue body
+//  - Replaces Display/Graphics sections with extracted markdown from settings (if not null)
+//  - Moves any images from Display/Graphics to end of Additional Notes
+function rewriteIssueBodyWithSettings(body, settings) {
+  const displaySectionName = "Game Display Settings";
+  const graphicsSectionName = "Game Graphics Settings";
+  const notesSectionName = "Additional Notes";
+
+  const displayCurrent = getSectionContent(body, displaySectionName) ?? "";
+  const graphicsCurrent = getSectionContent(body, graphicsSectionName) ?? "";
+  const notesCurrent = getSectionContent(body, notesSectionName) ?? "";
+
+  // Strip images from Display/Graphics
+  const { cleaned: displayNoImgs, urls: displayUrls } =
+    stripImages(displayCurrent);
+  const { cleaned: graphicsNoImgs, urls: graphicsUrls } =
+    stripImages(graphicsCurrent);
+
+  let newDisplayRaw, newGraphicsRaw;
+
+  if (settings) {
+    // Use AI output if provided, fallback to cleaned existing text
+    newDisplayRaw = settings.game_display_settings || displayNoImgs;
+    newGraphicsRaw = settings.game_graphics_settings || graphicsNoImgs;
+  } else {
+    // No AI output — keep cleaned existing text
+    newDisplayRaw = displayNoImgs;
+    newGraphicsRaw = graphicsNoImgs;
+  }
+
+  const newDisplay = generateReportSectionMarkdown(newDisplayRaw);
+  const newGraphics = generateReportSectionMarkdown(newGraphicsRaw);
+
+  // Additional Notes — preserve unless exactly "_No response_"
+  const baseNotes =
+    notesCurrent.trim() === "_No response_" ? "" : notesCurrent.trim();
+
+  const movedImgs = uniq([...displayUrls, ...graphicsUrls]);
+  const appendedImgsMd = movedImgs.length
+    ? "\n\n" + movedImgs.map((u) => `![Image](${u})`).join("\n")
+    : "";
+
+  const newNotesRaw = (baseNotes + appendedImgsMd).trim();
+  const newNotes = generateReportSectionMarkdown(newNotesRaw);
+
+  // Write back
+  let out = body;
+  out = setSectionContent(out, displaySectionName, newDisplay);
+  out = setSectionContent(out, graphicsSectionName, newGraphics);
+  out = setSectionContent(out, notesSectionName, newNotes);
+
+  return { body: out, movedCount: movedImgs.length };
+}
+
+// Post comment prompting user to fix issue
+async function updateIssueBody(
+  owner,
+  repo,
+  issueNumber,
+  updatedBody,
+  movedCount
+) {
+  if (dryRun) {
+    console.log(
+      `DRY RUN: would update issue #${issueNumber}. Images moved: ${movedCount}`
+    );
+    console.log(updatedBody);
+  } else {
+    await octokit.issues.update({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: updatedBody,
+    });
+    console.log(
+      `Updated issue #${issueNumber} body. Images moved: ${movedCount}`
+    );
+  }
+}
+
+// Add the "template-incomplete" label
+async function addAiGeneratedContentLabel(owner, repo, issueNumber) {
+  if (dryRun) {
+    console.log(
+      `DRY RUN: would add label "${aiGeneratedContentLabel}" to issue #${issueNumber}`
+    );
+  } else {
+    await octokit.issues.addLabels({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      labels: [aiGeneratedContentLabel],
+    });
+  }
+  console.log(
+    `Added label "${aiGeneratedContentLabel}" to issue #${issueNumber}`
+  );
+}
+
+// Post comment prompting user to fix issue
+async function postSuggestedSettingsComment(
+  owner,
+  repo,
+  issueNumber,
+  settings
+) {
+  const displayContent = generateReportSectionMarkdown(
+    settings.game_display_settings
+  );
+  const graphicsContent = generateReportSectionMarkdown(
+    settings.game_graphics_settings
+  );
+
+  const commentBody =
+    `**AI-Generated Game Settings Applied:**\n\n` +
+    `This automated check reviewed your report and extracted the following **Game Display Settings** and **Game Graphics Settings** from the screenshots you provided. These values have been added directly into your issue for your convenience.\n\n` +
+    `All uploaded images have been moved to the end of the **Additional Notes** section to keep the settings sections clean.\n\n` +
+    "```markdown\n" +
+    `### Game Display Settings\n\n` +
+    `${displayContent}\n\n` +
+    `### Game Graphics Settings\n\n` +
+    `${graphicsContent}\n` +
+    "```\n\n" +
+    `> [!WARNING]\n` +
+    `> These settings were automatically extracted with AI from your screenshots. They may contain errors or omissions.\n` +
+    `> Please compare them carefully against your original images and make any necessary corrections.\n\n` +
+    `> [!TIP]\n` +
+    `> To confirm these values or make changes, click **Edit** on your issue, update the text as needed, and save.\n` +
+    `> Once you update your issue body, this comment and the **${aiGeneratedContentLabel}** label will be automatically removed.\n`;
+
+  if (dryRun) {
+    console.log(
+      `DRY RUN: would post suggested settings comment on issue #${issueNumber}:`
+    );
+    console.log(commentBody);
+  } else {
+    await octokit.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: commentBody,
+    });
+    console.log(`Posted suggested settings comment on issue #${issueNumber}`);
+  }
+}
+
+// Remove validation comments from the issue
+async function removeSuggestedSettingsComment(owner, repo, issueNumber) {
+  const comments = await octokit.issues.listComments({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+
+  const botComments = comments.data.filter(
+    (comment) =>
+      comment.user.login === ghActionsBotUser &&
+      comment.body.includes("**AI-Generated Game Settings Applied:**")
+  );
+
+  for (const comment of botComments) {
+    if (dryRun) {
+      console.log(
+        `DRY RUN: would have deleted suggested settings comment (ID: ${comment.id}) on issue #${issueNumber}`
+      );
+    } else {
+      await octokit.issues.deleteComment({
+        owner,
+        repo,
+        comment_id: comment.id,
+      });
+      console.log(
+        `Deleted suggested settings comment (ID: ${comment.id}) on issue #${issueNumber}`
+      );
+    }
+  }
+}
+
+// Remove the "ai-generated-content" label
+async function removeAiGeneratedContentLabel(owner, repo, issueNumber) {
+  try {
+    if (dryRun) {
+      console.log(
+        `DRY RUN: would have removed label "${aiGeneratedContentLabel}" from issue #${issueNumber}`
+      );
+    } else {
+      await octokit.issues.removeLabel({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        name: aiGeneratedContentLabel,
+      });
+      console.log(
+        `Removed label "${aiGeneratedContentLabel}" from issue #${issueNumber}`
+      );
+    }
+  } catch (error) {
+    console.error(`Label not present on issue #${issueNumber}`);
+  }
+}
+
+async function processIssue(owner, repo, issue) {
+  const originalBody = issue.body || "";
+
+  // Read issue labels
+  const existingLabels = (
+    await octokit.issues.get({ owner, repo, issue_number: issue.number })
+  ).data.labels.map((label) => label.name);
+
+  // Always normalise images to the "Additional Notes" section first (move-only pass)
+  const { body: initialUpdatedBody, movedCount: initialMovedCount } =
+    rewriteIssueBodyWithSettings(originalBody, null);
+
+  // Build object based on extracted values
+  const reportData = buildReportData(
+    initialUpdatedBody,
+    validate.schema.properties
+  );
+
+  // Fetch "Game Display Settings" content and check if it is empty after normalisation
+  const displayContent = generateReportSectionMarkdown(
+    reportData["Game Display Settings"]
+  );
+  const displayEmpty = hasEmpty(displayContent);
+
+  // Check if the "Game Display Settings" section is empty.
+  if (!displayEmpty && initialMovedCount > 0) {
+    // Only save moved images - the "Game Display Settings" section already has config content
+    console.log(
+      `Updating issue body but skipping AI extraction for issue #${issue.number} as "Game Display Settings" is already filled.`
+    );
+    await updateIssueBody(
+      owner,
+      repo,
+      issue.number,
+      initialUpdatedBody,
+      initialMovedCount
+    );
+    // Clean up
+    await removeSuggestedSettingsComment(owner, repo, issue.number);
+    if (existingLabels.includes(aiGeneratedContentLabel)) {
+      await removeAiGeneratedContentLabel(owner, repo, issue.number);
+    }
+    return;
+  } else if (!displayEmpty) {
+    // No images moved and Display is filled -> nothing to do
+    console.log(
+      `Skipping AI extraction for issue #${issue.number} as "Game Display Settings" is already filled.`
+    );
+    // Clean up
+    await removeSuggestedSettingsComment(owner, repo, issue.number);
+    if (existingLabels.includes(aiGeneratedContentLabel)) {
+      await removeAiGeneratedContentLabel(owner, repo, issue.number);
+    }
+    return;
+  } else {
+    console.log(
+      `The "Game Display Settings" in issue #${issue.number} is empty after normalisation. Checking for images to parse...`
+    );
+  }
+
+  // Gather images (now all under Additional Notes)
+  const notesContent = reportData["Additional Notes"] || "";
+  const imageUrls = findImageUrls(notesContent);
+  if (imageUrls.length === 0) {
+    console.log("No images found to extract from. Exiting.");
+    return;
+  }
+  console.log(
+    `Found ${imageUrls.length} image URL(s) in issue #${issue.number}`
+  );
+
+  // Use AI to read Game settings from the images
+  const settings = await extractSettingsFromImages(imageUrls);
+
+  // Update original body with parsed settings and migrate images to end of "Additional Notes" section
+  const { body: updatedBody, movedCount } = rewriteIssueBodyWithSettings(
+    originalBody,
+    settings
+  );
+  await updateIssueBody(owner, repo, issue.number, updatedBody, movedCount);
+
+  // Add a label to the issue to indicate that it contains AI generated content that has not been reviewed
+  if (!existingLabels.includes(aiGeneratedContentLabel)) {
+    await addAiGeneratedContentLabel(owner, repo, issue.number);
+  }
+  // Post a comment on the issue with the suggested settings
+  await postSuggestedSettingsComment(owner, repo, issue.number, settings);
+
+  console.log(`Image management complete for issue #${issue.number}`);
+}
+
+// === Main ===
+async function run() {
+  const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
+  const owner = process.env.REPO_OWNER;
+  const repo = process.env.REPO_NAME;
+
+  if (!issueNumber || !owner || !repo) {
+    console.error("Missing environment variables.");
+    process.exit(1);
+  }
+  if (!process.env.OPENAI_API_KEY) {
+    console.error("Missing OPENAI_API_KEY in environment.");
+    process.exit(1);
+  }
+
+  const { data: issue } = await octokit.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+
+  if (issue.pull_request) {
+    console.log("Skipping pull request.");
+    process.exit(0);
+  }
+
+  if (!issue.body) {
+    console.log("Issue body is empty.");
+    process.exit(0);
+  }
+
+  await processIssue(owner, repo, issue);
+}
+
+run().catch((err) => {
+  console.error("Error:", err);
+  process.exit(1);
+});
