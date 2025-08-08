@@ -4,7 +4,7 @@
  * File Created: Friday, 8th August 2025 12:30:32 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Friday, 8th August 2025 5:15:26 pm
+ * Last Modified: Friday, 8th August 2025 5:20:56 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -394,8 +394,9 @@ async function postSuggestedSettingsComment(
     `> These settings were automatically extracted with AI from your screenshots. They may contain errors or omissions.\n` +
     `> Please compare them carefully against your original images and make any necessary corrections.\n\n` +
     `> [!TIP]\n` +
-    `> To confirm these values or make changes, click **Edit** on your issue, update the text as needed, and save.\n` +
-    `> Once you update your issue body, this comment and the **${aiGeneratedContentLabel}** label will be automatically removed.\n`;
+    `> **To confirm or edit these values, you must make a real change to the issue body** (saving without changes does not trigger an update, and comments do not count).\n` +
+    `> Recommended: open **Edit**, add an additional empty space or line under **Additional Notes** (or adjust any value), then click **Save**.\n` +
+    `> After a human edit is saved, this comment and the **${aiGeneratedContentLabel}** label will be removed automatically indicating that the report contents have been reviewed.\n`;
 
   if (dryRun) {
     console.log(
