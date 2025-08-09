@@ -8,7 +8,7 @@ By contributing game reports, you help the community optimize performance, troub
 
 ## 🚀 Why Deck Settings?
 
-While platforms like [ProtonDB](https://www.protondb.com/) and [ShareDeck](https://sharedeck.games/) exist to track game compatibility, Deck Settings was created to address key limitations found in those platforms:
+While platforms like [ProtonDB](https://www.protondb.com/) and [ShareDeck](https://sharedeck.games/) exist to track game compatibility, Deck Settings (and the [Deck Verified](https://deckverified.games/deck-verified/) website) was created to address key limitations found in those platforms:
 
 #### 1. 🔄 Editable and User-Controlled Reports
 
