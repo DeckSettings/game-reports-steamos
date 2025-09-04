@@ -66,7 +66,7 @@ Click the link above to generate a new report using our pre-filled template.
 - **Target Framerate** – Expected framerate (30, 40, 60, etc.).
 - **Device** – Specify which handheld device was used (e.g., Steam Deck, ROG Ally, etc).
 - **SteamOS Version** – OS version during testing.
-- **Frame Limits** – Frame limiter, TDP limit, GPU undervolt, or custom scaling applied.
+- **Frame Limits** – Frame limiter, TDP limit, GPU clock, or custom scaling applied.
 - **Launch Options** – Any custom Steam launch options or environment tweaks.
 - **Graphics Settings** – Share your in-game graphics settings (low, medium, high, custom).
 - **Additional Notes** – Share any relevant findings, bugs, or workarounds.

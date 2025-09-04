@@ -193,14 +193,6 @@ body:
       value: 3.7.13
     validations:
       required: true
-  #   > Undervolt Applied
-  - type: input
-    id: undervolt_applied
-    attributes:
-      label: Undervolt Applied
-      description: Have you applied any undervolting to your Deck? Specify it in the format CPU/GPU/SOC (e.g., 20/40/20). Leave blank if no undervolting was applied.
-    validations:
-      required: false
 
   # -- STEAMOS GAME PROPERTIES --
   - type: markdown
