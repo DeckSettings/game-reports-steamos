@@ -122,10 +122,6 @@
             "type": "string",
             "minLength": 1
         },
-        "Undervolt Applied": {
-            "description": "Undervolt applied (CPU/GPU/SOC) or leave blank if none.",
-            "type": "string"
-        },
         "Steam Play Compatibility Tool Used": {
             "description": "Steam Play compatibility tool used.",
             "type": "string",
