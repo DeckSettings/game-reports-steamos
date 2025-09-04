@@ -4,7 +4,7 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 4th March 2025 6:26:27 pm
+ * Last Modified: Friday, 5th September 2025 7:21:54 am
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -18,8 +18,11 @@ const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
 
+const ghActionsBotUser =
+  process.env.GH_ACTIONS_BOT_USER ?? "github-actions[bot]";
+console.log(`GH_ACTIONS_BOT_USER ${ghActionsBotUser}`);
+
 const BOT_COMMENT_HEADER = "[ReportBot Managed Comment]";
-const BOT_COMMENT_USER = "github-actions[bot]";
 
 // Define valid bot commands and optionally associated labels
 const validCommands = {
@@ -280,7 +283,7 @@ async function removeReplyComments(
 
   const botComments = comments.data.filter(
     (comment) =>
-      comment.user.login === BOT_COMMENT_USER &&
+      comment.user.login === ghActionsBotUser &&
       comment.body.includes(
         `*This comment was triggered by comment ID: ${originalCommentId}`
       )
