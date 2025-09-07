@@ -55,6 +55,7 @@ body:
         - Heroic Games Launcher
         - Lutris
         - Bottles
+        - Junk Store
         - Other
       default: 0
     validations:
