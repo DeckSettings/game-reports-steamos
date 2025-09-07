@@ -189,7 +189,7 @@ body:
     id: os_version
     attributes:
       label: OS Version
-      description: 'Specify the version of SteamOS you are running. For other Linux distributions (e.g., SteamFork, Nobara, ChimeraOS), provide the distro name and version in the format `<DISTRO>_<VERSION>` (e.g., `ChimeraOS_46-2`). If the distro is a rolling release and does not have a version, just specify the name (e.g., `CachyOS`).'
+      description: 'Specify the version of SteamOS you are running. For other Linux distributions (e.g., CachyOS, Nobara, ChimeraOS), provide the distro name and version in the format `<DISTRO>_<VERSION>` (e.g., `ChimeraOS_46-2`). If the distro is a rolling release and does not have a version, just specify the name (e.g., `CachyOS`).'
       value: 3.7.13
     validations:
       required: true
