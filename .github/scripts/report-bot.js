@@ -4,7 +4,7 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Friday, 5th September 2025 7:21:54 am
+ * Last Modified: Tuesday, 23rd September 2025 11:41:26 am
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -22,12 +22,134 @@ const ghActionsBotUser =
   process.env.GH_ACTIONS_BOT_USER ?? "github-actions[bot]";
 console.log(`GH_ACTIONS_BOT_USER ${ghActionsBotUser}`);
 
+const args = process.argv.slice(2);
+
 const BOT_COMMENT_HEADER = "[ReportBot Managed Comment]";
+const REPORT_BOT_INTRO_MESSAGE = `*${BOT_COMMENT_HEADER}*
+
+Hi! I'm **ReportBot**, here to help the community collaborate on this game report.
+
+<details>
+<summary><strong>▶️ How to use ReportBot (click to expand)</strong></summary>
+
+---
+
+Mention \`@/reportbot <command> ...details...\` in a comment. Always add a short explanation **after** the command so the reporter knows what to do next.
+
+## Examples
+
+### Community commands
+
+> ["help"] See everything I can do.
+\`\`\`
+@/reportbot help
+\`\`\`
+
+> ["request-clarification"] Ask for more details. Usually to be added to the "Additional Notes" section.
+\`\`\`
+@/reportbot request-clarification Could you clarify where the FPS was measured? For example, was the minimum FPS captured when entering the open world after the second village (where stutters and drops are most common)?
+\`\`\`
+
+> ["suggest-config-review"] Suggest re-checking configuration details. Often used when a game or driver update may have changed results.
+\`\`\`
+@/reportbot suggest-config-review This game was recently updated with performance fixes. The performance targets in your report may now be out of date and worth re-testing.
+\`\`\`
+
+> ["suggest-improvements"] Propose adding extra information or media.
+\`\`\`
+@/reportbot suggest-improvements You left the "Average Battery Power Draw" field blank. Please add it so the report can include an estimated battery life calculation.
+\`\`\`
+
+> ["suggest-spelling-check"] Point out typos or grammar issues.
+\`\`\`
+@/reportbot suggest-spelling-check A few headings (e.g. "Graphcis") look misspelled.
+\`\`\`
+
+> ["suggest-verification"] Recommend double-checking accuracy. Use this to point out potential mistakes or inconsistencies.
+\`\`\`
+@/reportbot suggest-verification The max power draw was listed as 5 W when it looks like you meant 15 W. The report shows a very long battery life, but at 15 W it should probably only have a few hours.
+\`\`\`
+
+### Author-only commands
+
+> ["resolve"] Remove a specific label after addressing it.
+\`\`\`
+@/reportbot resolve community:clarification-requested
+\`\`\`
+
+> ["resolve"] Remove several labels at once.
+\`\`\`
+@/reportbot resolve community:clarification-requested community:verification-suggested
+\`\`\`
+
+> ["resolve"] Remove **all** managed community labels from this report.
+\`\`\`
+@/reportbot resolve all
+\`\`\`
+
+</details>
+
+---
+
+## A note to the report author (you own this report)
+You can **edit your report at any time**. Games evolve — patches improve performance, drivers change, settings meta shifts. If your results change, please **update your report** so others benefit from the freshest info.
+
+Prefer to withdraw it? That is okay too. You can **delete your report** whenever you want. You **own your report** and have full control over its lifecycle.
+
+Community members may post comments or add the labels below to highlight something they think needs attention. If you see such a label on your report, please review it and consider updating to avoid the report getting voted down. When you have addressed it, you can clear labels yourself using the author-only \`resolve\` command shown above.
+
+---
+
+## Resolving feedback
+If you posted a feedback comment and it has been addressed, you have two ways to resolve the labels it created:
+
+1. **Edit your original comment** and append **\`[RESOLVED]\`** on its own line. ReportBot will remove the label or labels created from that comment and mark its bot reply as resolved.  
+2. **Delete your original comment.** ReportBot will automatically remove the associated labels and its reply.
+
+---
+
+## What labels are (and when to use them)
+Labels are **community signals** attached to the report so the author can quickly see what needs attention. They are not votes and they are not punishments. They are prompts to improve clarity and usefulness.
+
+Use a label when your feedback is:
+- **Actionable** (the author can do something specific), and
+- **Specific** (points to a setting, a metric, a claim, or evidence).
+
+Good uses:
+- Ask for missing details (\`community:clarification-requested\`).
+- Suggest a focused settings review (\`community:config-review-suggested\`).
+- Propose concrete upgrades like screenshots or short clips (\`community:improvements-suggested\`).
+- Flag typos that reduce readability (\`community:spelling-check-suggested\`).
+- Request a double-check of a claim or metric (\`community:verification-suggested\`).
+
+Less ideal:
+- General disagreement without details (use a regular comment and explain).
+- Piling on multiple labels for the same point (pick the most relevant single label).
+
+> [!NOTE]
+> You can also react 👍 or 👎 to the report to express an overall opinion.
+> These reactions will affect the placement of this review in search results.
+
+---
+
+## Be excellent to each other
+Keep discussion **civil, specific, and constructive**. We are here to help one another find good settings and accurate expectations.
+
+---
+
+> [!TIP]
+> Post a comment \`@/reportbot help\` any time to see the full list of commands that can be used in comments below.
+`;
 
 // Define valid bot commands and optionally associated labels
 const validCommands = {
   help: {
     description: "Displays a list of available ReportBot commands.",
+  },
+  resolve: {
+    role: "author",
+    description:
+      "Report author only. Remove one or more community labels that have been addressed. Usage: `@/reportbot resolve <label|label2|...>` or `@/reportbot resolve all`",
   },
   "suggest-spelling-check": {
     label: "community:spelling-check-suggested",
@@ -47,7 +169,7 @@ const validCommands = {
   "suggest-verification": {
     label: "community:verification-suggested",
     description:
-      "Applies a label to let the reporter know you are suggesting verification of the report's information.",
+      "Applies a label to let the reporter know you are suggesting verification of the report's information. Usually things to be added to the 'Additional Notes' section.",
   },
   "suggest-improvements": {
     label: "community:improvements-suggested",
@@ -124,6 +246,79 @@ async function run() {
     const additionalContent = commentBody
       .replace(/@\/reportbot\s+[a-z-]+\s*/, "")
       .trim();
+
+    // Handle author resolve messages
+    if (command === "resolve") {
+      // Only issue author can resolve
+      const issueAuthor = await getIssueAuthorLogin(owner, repo, issueNumber);
+      if (commenter !== issueAuthor) {
+        await postComment(
+          owner,
+          repo,
+          issueNumber,
+          commentId,
+          `@${commenter} Only the report author (@${issueAuthor}) can resolve labels on this issue.`
+        );
+        return;
+      }
+
+      if (!additionalContent) {
+        await postComment(
+          owner,
+          repo,
+          issueNumber,
+          commentId,
+          `@${commenter} Please specify which label(s) to resolve, e.g. \`@/reportbot resolve community:clarification-requested\` or \`@/reportbot resolve all\`.`
+        );
+        return;
+      }
+
+      const managed = getManagedCommunityLabels();
+
+      let toRemove = [];
+      if (/^all$/i.test(additionalContent)) {
+        toRemove = managed;
+      } else {
+        toRemove = normalizeRequestedLabels(additionalContent, managed);
+        if (toRemove.length === 0) {
+          await postComment(
+            owner,
+            repo,
+            issueNumber,
+            commentId,
+            `@${commenter} No valid managed labels found in your request. Managed labels are: \`${managed.join(
+              ", "
+            )}\`.`
+          );
+          return;
+        }
+      }
+
+      const { removed, missing } = await resolveLabels(
+        owner,
+        repo,
+        issueNumber,
+        toRemove
+      );
+
+      const parts = [];
+      if (removed.length) parts.push(`✅ Removed: \`${removed.join("`, `")}\``);
+      if (missing.length)
+        parts.push(`ℹ️ Not present: \`${missing.join("`, `")}\``);
+
+      await postComment(
+        owner,
+        repo,
+        issueNumber,
+        commentId,
+        parts.length ? parts.join("\n") : "No changes were made.",
+        `ACTION=resolve LABELS=${toRemove.join(",")}`
+      );
+
+      return;
+    }
+
+    // For label-adding commands, additional content is required
     if (!additionalContent) {
       await postComment(
         owner,
@@ -159,6 +354,15 @@ async function run() {
     //await addReaction(owner, repo, commentId);
   } else if (action === "deleted") {
     await removeReplyComments(owner, repo, issueNumber, commentId);
+  } else if (action === "edited") {
+    if (commentBody.includes("[RESOLVED]")) {
+      console.log(
+        `Detected [RESOLVED] marker in edited comment ID ${commentId}. Removing related labels.`
+      );
+      await removeReplyComments(owner, repo, issueNumber, commentId, {
+        keepComment: true,
+      });
+    }
   }
 }
 
@@ -175,7 +379,7 @@ async function postHelpComment(owner, repo, issueNumber, commentId) {
     .join("\n");
 
   const helpMessage = `Here are the available commands for ReportBot:\n\n${helpText}`;
-  const helpFooter = `***Important:*** You cannot submit a command without providing additional information. Always include specific details to help the reporter address your suggestion.`;
+  const helpFooter = `***Important:*** You cannot submit a command without providing additional information. Always include specific details to help the reporter address your suggestion.\n\n- Note: \`resolve\` can only be used by the **report author**.`;
 
   await postComment(
     owner,
@@ -184,6 +388,30 @@ async function postHelpComment(owner, repo, issueNumber, commentId) {
     commentId,
     `${helpMessage}\n\n\n${helpFooter}`
   );
+}
+
+// Function to post a default help message on new issues
+async function postIssueHelpComment(owner, repo, issueNumber) {
+  if (!issueNumber || !owner || !repo) {
+    console.error(
+      "Missing ISSUE_NUMBER, REPO_OWNER, or REPO_NAME environment variables."
+    );
+    process.exit(1);
+  }
+
+  try {
+    console.log(
+      `Posting default help message on issue #${issueNumber} in ${owner}/${repo}`
+    );
+    await octokit.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: REPORT_BOT_INTRO_MESSAGE,
+    });
+  } catch (error) {
+    console.error(`Error posting help message: ${error.message}`);
+  }
 }
 
 // Function to post a comment on the issue
@@ -273,7 +501,8 @@ async function removeReplyComments(
   owner,
   repo,
   issueNumber,
-  originalCommentId
+  originalCommentId,
+  options = {}
 ) {
   const comments = await octokit.issues.listComments({
     owner,
@@ -305,24 +534,122 @@ async function removeReplyComments(
       }
     }
 
-    try {
-      await octokit.issues.deleteComment({
-        owner,
-        repo,
-        comment_id: comment.id,
-      });
-      console.log(
-        `Deleted validation comment (ID: ${comment.id}) on issue #${issueNumber}`
-      );
-    } catch (error) {
-      console.error(
-        `Error deleting comment (ID: ${comment.id}) on issue #${issueNumber}: ${error.message}`
-      );
+    if (!options.keepComment) {
+      try {
+        await octokit.issues.deleteComment({
+          owner,
+          repo,
+          comment_id: comment.id,
+        });
+        console.log(
+          `Deleted validation comment (ID: ${comment.id}) on issue #${issueNumber}`
+        );
+      } catch (error) {
+        console.error(
+          `Error deleting comment (ID: ${comment.id}) on issue #${issueNumber}: ${error.message}`
+        );
+      }
+    } else {
+      // Instead of deleting, maybe add a note that it was resolved
+      try {
+        await octokit.issues.updateComment({
+          owner,
+          repo,
+          comment_id: comment.id,
+          body: `${comment.body}\n\n✅ *This feedback has been marked as RESOLVED by the commenter.*`,
+        });
+        console.log(
+          `Marked bot comment (ID: ${comment.id}) as resolved on issue #${issueNumber}`
+        );
+      } catch (error) {
+        console.error(
+          `Error updating comment (ID: ${comment.id}) on issue #${issueNumber}: ${error.message}`
+        );
+      }
     }
   }
 }
 
-run().catch((error) => {
+// Fetch the issue and return the login of the author
+async function getIssueAuthorLogin(owner, repo, issueNumber) {
+  const { data: issue } = await octokit.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+  return issue.user?.login;
+}
+
+// Returns an array of community labels that are "managed" by this bot
+function getManagedCommunityLabels() {
+  return Object.values(validCommands)
+    .map((c) => c.label)
+    .filter(Boolean); // only entries that have a label
+}
+
+// Normalize label input (trim & preserve case of real labels, but match case-insensitively)
+function normalizeRequestedLabels(input, managedLabels) {
+  const requested = input
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const byLower = new Map(managedLabels.map((L) => [L.toLowerCase(), L]));
+
+  const resolved = [];
+  for (const req of requested) {
+    const exact = byLower.get(req.toLowerCase());
+    if (exact) resolved.push(exact);
+  }
+  return Array.from(new Set(resolved)); // unique
+}
+
+// Remove one or many labels; returns {removed:[], missing:[]}
+async function resolveLabels(owner, repo, issueNumber, labels) {
+  const { data: current } = await octokit.issues.listLabelsOnIssue({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+  const present = new Set(current.map((l) => l.name));
+  const removed = [];
+  const missing = [];
+
+  for (const label of labels) {
+    if (present.has(label)) {
+      try {
+        await octokit.issues.removeLabel({
+          owner,
+          repo,
+          issue_number: issueNumber,
+          name: label,
+        });
+        removed.push(label);
+      } catch (e) {
+        // If racing or lacking, treat as missing
+        missing.push(label);
+      }
+    } else {
+      missing.push(label);
+    }
+  }
+
+  return { removed, missing };
+}
+
+async function main() {
+  if (args.includes("--intro")) {
+    const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
+    const owner = process.env.REPO_OWNER;
+    const repo = process.env.REPO_NAME;
+    await postIssueHelpComment(owner, repo, issueNumber);
+    return;
+  }
+
+  await run();
+}
+
+main().catch((error) => {
   console.error("An error occurred:", error);
   process.exit(1);
 });
