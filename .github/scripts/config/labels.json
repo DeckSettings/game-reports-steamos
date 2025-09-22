@@ -1,0 +1,92 @@
+[
+    {
+        "name": "community:clarification-requested",
+        "color": "E4E669",
+        "description": "Community feedback indicates that additional clarification could help."
+    },
+    {
+        "name": "community:config-review-suggested",
+        "color": "E4E669",
+        "description": "Community feedback suggests reviewing the configuration settings."
+    },
+    {
+        "name": "community:improvements-suggested",
+        "color": "E4E669",
+        "description": "Community feedback suggests potential improvements to this report."
+    },
+    {
+        "name": "community:spelling-check-suggested",
+        "color": "E4E669",
+        "description": "Community feedback suggests a spelling check may be needed."
+    },
+    {
+        "name": "community:verification-suggested",
+        "color": "E4E669",
+        "description": "Community feedback suggests verifying the accuracy of the report."
+    },
+    {
+        "name": "device:legion-go",
+        "color": "FFFFFF",
+        "description": "Legion Go"
+    },
+    {
+        "name": "device:rog-ally-x",
+        "color": "FFFFFF",
+        "description": "ROG Ally X"
+    },
+    {
+        "name": "device:rog-ally-z1",
+        "color": "FFFFFF",
+        "description": "ROG Ally Z1"
+    },
+    {
+        "name": "device:rog-ally-z1e",
+        "color": "FFFFFF",
+        "description": "ROG Ally Z1 Extreme"
+    },
+    {
+        "name": "device:steam-deck",
+        "color": "FFFFFF",
+        "description": "Steam Deck"
+    },
+    {
+        "name": "invalid:report-inaccurate",
+        "color": "E99695",
+        "description": "The report contains inaccuracies that could not be resolved."
+    },
+    {
+        "name": "invalid:template-incomplete",
+        "color": "E99695",
+        "description": "The report is missing required data or is incorrectly formatted."
+    },
+    {
+        "name": "launcher:bottles",
+        "color": "1D76DB",
+        "description": "Bottles"
+    },
+    {
+        "name": "launcher:heroic",
+        "color": "1D76DB",
+        "description": "Heroic Games Launcher"
+    },
+    {
+        "name": "launcher:lutris",
+        "color": "1D76DB",
+        "description": "Lutris"
+    },
+    {
+        "name": "launcher:other",
+        "color": "1D76DB",
+        "description": "Other"
+    },
+    {
+        "name": "launcher:steam",
+        "color": "1D76DB",
+        "description": "Steam"
+    },
+    {
+        "name": "note:ocr-generated-content",
+        "color": "5319e7",
+        "description": "The report contains OCR generated content that has not been reviewed."
+    }
+]
