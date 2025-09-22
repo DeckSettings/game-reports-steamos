@@ -1,31 +1,58 @@
 {
     "devices": [
         {
-            "name": "Steam Deck LCD (64GB)",
-            "battery_size_wh": 40,
-            "max_display_resolution": "1280x800",
-            "max_refresh_rate": 60,
-            "supports_vrr": false,
-            "max_tdp_w": 15,
-            "max_gpu_clk": 1600
-        },
-        {
-            "name": "Steam Deck LCD (256GB/512GB)",
-            "battery_size_wh": 40,
-            "max_display_resolution": "1280x800",
-            "max_refresh_rate": 60,
-            "supports_vrr": false,
-            "max_tdp_w": 15,
-            "max_gpu_clk": 1600
-        },
-        {
-            "name": "Steam Deck OLED",
-            "battery_size_wh": 50,
+            "name": "GPD Win 4",
+            "battery_size_wh": 45,
             "max_display_resolution": "1920x1080",
-            "max_refresh_rate": 90,
+            "max_refresh_rate": 60,
             "supports_vrr": false,
-            "max_tdp_w": 15,
+            "max_tdp_w": 32,
+            "max_gpu_clk": 2600
+        },
+        {
+            "name": "Legion Go",
+            "battery_size_wh": 49.2,
+            "max_display_resolution": "2560x1600",
+            "max_refresh_rate": 144,
+            "supports_vrr": false,
+            "max_tdp_w": 30,
+            "max_gpu_clk": 2700
+        },
+        {
+            "name": "Legion Go 2",
+            "battery_size_wh": 74,
+            "max_display_resolution": "1920x1200",
+            "max_refresh_rate": 144,
+            "supports_vrr": true,
+            "max_tdp_w": 40,
             "max_gpu_clk": 1600
+        },
+        {
+            "name": "Legion Go S",
+            "battery_size_wh": 55.5,
+            "max_display_resolution": "1920x1200",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 30,
+            "max_gpu_clk": 2700
+        },
+        {
+            "name": "MSI Claw",
+            "battery_size_wh": 53,
+            "max_display_resolution": "1920x1200",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 45,
+            "max_gpu_clk": 2500
+        },
+        {
+            "name": "MSI Claw A8 Plus",
+            "battery_size_wh": 80,
+            "max_display_resolution": "1920x1200",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 37,
+            "max_gpu_clk": 2800
         },
         {
             "name": "ROG Ally Z1",
@@ -55,12 +82,39 @@
             "max_gpu_clk": 2700
         },
         {
-            "name": "Legion Go",
-            "battery_size_wh": 49.2,
-            "max_display_resolution": "2560x1600",
-            "max_refresh_rate": 144,
+            "name": "Steam Deck LCD (64GB)",
+            "battery_size_wh": 40,
+            "max_display_resolution": "1280x800",
+            "max_refresh_rate": 60,
             "supports_vrr": false,
-            "max_tdp_w": 30,
+            "max_tdp_w": 15,
+            "max_gpu_clk": 1600
+        },
+        {
+            "name": "Steam Deck LCD (256GB/512GB)",
+            "battery_size_wh": 40,
+            "max_display_resolution": "1280x800",
+            "max_refresh_rate": 60,
+            "supports_vrr": false,
+            "max_tdp_w": 15,
+            "max_gpu_clk": 1600
+        },
+        {
+            "name": "Steam Deck OLED",
+            "battery_size_wh": 50,
+            "max_display_resolution": "1920x1080",
+            "max_refresh_rate": 90,
+            "supports_vrr": false,
+            "max_tdp_w": 15,
+            "max_gpu_clk": 1600
+        },
+        {
+            "name": "Zotac Zone",
+            "battery_size_wh": 48,
+            "max_display_resolution": "1920x1080",
+            "max_refresh_rate": 120,
+            "supports_vrr": false,
+            "max_tdp_w": 28,
             "max_gpu_clk": 2700
         }
     ]
