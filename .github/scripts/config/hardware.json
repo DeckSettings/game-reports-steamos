@@ -1,6 +1,33 @@
 {
     "devices": [
         {
+            "name": "ASUS ROG Ally Z1",
+            "battery_size_wh": 40.3,
+            "max_display_resolution": "1920x1080",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 30,
+            "max_gpu_clk": 2700
+        },
+        {
+            "name": "ASUS ROG Ally Z1 Extreme",
+            "battery_size_wh": 40.3,
+            "max_display_resolution": "1920x1080",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 30,
+            "max_gpu_clk": 2700
+        },
+        {
+            "name": "ASUS ROG Ally X",
+            "battery_size_wh": 80,
+            "max_display_resolution": "1920x1080",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 30,
+            "max_gpu_clk": 2700
+        },
+        {
             "name": "GPD Win 4",
             "battery_size_wh": 45,
             "max_display_resolution": "1920x1080",
@@ -10,7 +37,7 @@
             "max_gpu_clk": 2600
         },
         {
-            "name": "Legion Go",
+            "name": "Lenovo Legion Go",
             "battery_size_wh": 49.2,
             "max_display_resolution": "2560x1600",
             "max_refresh_rate": 144,
@@ -19,7 +46,7 @@
             "max_gpu_clk": 2700
         },
         {
-            "name": "Legion Go 2",
+            "name": "Lenovo Legion Go 2",
             "battery_size_wh": 74,
             "max_display_resolution": "1920x1200",
             "max_refresh_rate": 144,
@@ -28,7 +55,7 @@
             "max_gpu_clk": 1600
         },
         {
-            "name": "Legion Go S",
+            "name": "Lenovo Legion Go S",
             "battery_size_wh": 55.5,
             "max_display_resolution": "1920x1200",
             "max_refresh_rate": 120,
@@ -55,34 +82,7 @@
             "max_gpu_clk": 2800
         },
         {
-            "name": "ROG Ally Z1",
-            "battery_size_wh": 40.3,
-            "max_display_resolution": "1920x1080",
-            "max_refresh_rate": 120,
-            "supports_vrr": true,
-            "max_tdp_w": 30,
-            "max_gpu_clk": 2700
-        },
-        {
-            "name": "ROG Ally Z1 Extreme",
-            "battery_size_wh": 40.3,
-            "max_display_resolution": "1920x1080",
-            "max_refresh_rate": 120,
-            "supports_vrr": true,
-            "max_tdp_w": 30,
-            "max_gpu_clk": 2700
-        },
-        {
-            "name": "ROG Ally X",
-            "battery_size_wh": 80,
-            "max_display_resolution": "1920x1080",
-            "max_refresh_rate": 120,
-            "supports_vrr": true,
-            "max_tdp_w": 30,
-            "max_gpu_clk": 2700
-        },
-        {
-            "name": "Steam Deck LCD (64GB)",
+            "name": "Valve Steam Deck LCD (64GB)",
             "battery_size_wh": 40,
             "max_display_resolution": "1280x800",
             "max_refresh_rate": 60,
@@ -91,7 +91,7 @@
             "max_gpu_clk": 1600
         },
         {
-            "name": "Steam Deck LCD (256GB/512GB)",
+            "name": "Valve Steam Deck LCD (256GB/512GB)",
             "battery_size_wh": 40,
             "max_display_resolution": "1280x800",
             "max_refresh_rate": 60,
@@ -100,7 +100,7 @@
             "max_gpu_clk": 1600
         },
         {
-            "name": "Steam Deck OLED",
+            "name": "Valve Steam Deck OLED",
             "battery_size_wh": 50,
             "max_display_resolution": "1920x1080",
             "max_refresh_rate": 90,

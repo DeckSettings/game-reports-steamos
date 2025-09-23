@@ -4,8 +4,8 @@
  * File Created: Thursday, 26th December 2024 10:04:20 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 2nd January 2025 10:18:30 am
- * Modified By: Josh5 (jsunnex@gmail.com)
+ * Last Modified: Tuesday, 23rd September 2025 12:56:47 pm
+ * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
 import { Octokit } from "@octokit/rest";
@@ -19,6 +19,8 @@ const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
 
+const DEFAULT_LAUNCHER_LABEL = "LAUNCHER: Other";
+
 async function fetchLabels(owner, repo) {
   try {
     const { data: labels } = await octokit.issues.listLabelsForRepo({
@@ -27,7 +29,7 @@ async function fetchLabels(owner, repo) {
     });
     return labels.map((label) => ({
       name: label.name,
-      description: label.description ? label.description.toLowerCase() : "",
+      description: label.description || "",
     }));
   } catch (error) {
     console.error(`Error fetching labels: ${error.message}`);
@@ -42,10 +44,8 @@ async function applyLabel(
   repo,
   issueNumber,
   labelType,
-  labelValue
+  newLabel
 ) {
-  const newLabel = `${labelType}:${labelValue}`;
-
   try {
     // Fetch existing labels on the issue
     const { data: issue } = await octokit.issues.get({
@@ -54,12 +54,17 @@ async function applyLabel(
       issue_number: issueNumber,
     });
 
-    const existingLabelNames = issue.labels.map((label) => label.name);
+    const existingLabelNames = issue.labels.map((l) => l.name);
 
     // Determine which labels to remove (same type but different value)
-    const labelsToRemove = existingLabelNames.filter(
-      (name) => name.startsWith(`${labelType}:`) && name !== newLabel
-    );
+    const prefix = (labelType + ":").toLowerCase();
+
+    // Remove labels of this type that aren't the new one
+    const labelsToRemove = existingLabelNames.filter((name) => {
+      const isSameType = name.toLowerCase().startsWith(prefix);
+      const isDifferent = !newLabel || name !== newLabel;
+      return isSameType && isDifferent;
+    });
 
     // Remove outdated labels
     for (const labelName of labelsToRemove) {
@@ -73,7 +78,7 @@ async function applyLabel(
     }
 
     // Add the new label if it's not already present
-    if (labelValue && !existingLabelNames.includes(newLabel)) {
+    if (newLabel && !existingLabelNames.includes(newLabel)) {
       console.log(`Adding label: ${newLabel} to issue #${issueNumber}.`);
       await octokit.issues.addLabels({
         owner,
@@ -81,7 +86,7 @@ async function applyLabel(
         issue_number: issueNumber,
         labels: [newLabel],
       });
-    } else if (!labelValue) {
+    } else if (!newLabel) {
       console.log("No matching label found. Not adding any label.");
     } else {
       console.log(
@@ -125,63 +130,76 @@ async function run() {
 
     // Extract "Device" label value
     const deviceValue = extractHeadingValue(lines, "Device");
-    let newDeviceLabel = null;
     if (deviceValue) {
-      const lowerDevice = deviceValue.toLowerCase();
-      let matchingLabel = labels.find(
-        (label) => lowerDevice === label.description
-      );
-      if (!matchingLabel) {
-        matchingLabel = labels.find((label) =>
-          lowerDevice.includes(label.description)
-        );
+      const deviceText = (deviceValue || "").trim();
+      let matchingDeviceName = null;
+      for (const label of labels) {
+        const pattern = (label.description || "").trim();
+        if (!pattern) continue;
+
+        try {
+          const re = new RegExp(pattern);
+          if (re.test(deviceText)) {
+            matchingDeviceName = label.name;
+            break;
+          }
+        } catch (e) {
+          console.warn(`Invalid regex in label "${label.name}": ${pattern}`);
+        }
       }
-      if (!matchingLabel) {
-        matchingLabel = labels.find((label) =>
-          label.description.includes(lowerDevice)
-        );
-      }
-      if (matchingLabel) {
-        newDeviceLabel = matchingLabel.name.replace(/^device:/, "");
+      if (matchingDeviceName) {
+        // Remove legacy lower-case labels
+        await applyLabel(octokit, owner, repo, issueNumber, "device", null);
+        // Add/Update labels
         await applyLabel(
           octokit,
           owner,
           repo,
           issueNumber,
-          "device",
-          newDeviceLabel
+          "DEVICE",
+          matchingDeviceName
         );
       } else {
-        console.log(`No device label found matching: ${lowerDevice}`);
+        console.log(`No device label found matching via regex: ${deviceText}`);
       }
     }
 
     // Extract "Launcher" label value
     const launcherValue = extractHeadingValue(lines, "Launcher");
-    let newLauncherLabel = null;
     if (launcherValue) {
-      const lowerLauncher = launcherValue.toLowerCase();
-      let matchingLabel = labels.find(
-        (label) => lowerLauncher === label.description
+      const launcherText = launcherValue.trim();
+      let matchingLauncherName = null;
+
+      for (const label of labels) {
+        const pattern = (label.description || "").trim();
+        if (!pattern) continue;
+        try {
+          const re = new RegExp(pattern);
+          if (re.test(launcherText)) {
+            matchingLauncherName = label.name;
+            break;
+          }
+        } catch (e) {
+          console.warn(`Invalid regex in label "${label.name}": ${pattern}`);
+        }
+      }
+      if (!matchingLauncherName) {
+        console.log(
+          `No launcher label found matching via regex: ${launcherText}. Defaulting to ${DEFAULT_LAUNCHER_LABEL}`
+        );
+        matchingLauncherName = DEFAULT_LAUNCHER_LABEL;
+      }
+      // Remove legacy lower-case labels
+      await applyLabel(octokit, owner, repo, issueNumber, "launcher", null);
+      // Add/Update labels
+      await applyLabel(
+        octokit,
+        owner,
+        repo,
+        issueNumber,
+        "LAUNCHER",
+        matchingLauncherName
       );
-      if (!matchingLabel) {
-        matchingLabel = labels.find((label) =>
-          label.description.includes(lowerLauncher)
-        );
-      }
-      if (matchingLabel) {
-        newLauncherLabel = matchingLabel.name.replace(/^launcher:/, "");
-        await applyLabel(
-          octokit,
-          owner,
-          repo,
-          issueNumber,
-          "launcher",
-          newLauncherLabel
-        );
-      } else {
-        console.log(`No launcher label found matching: ${lowerLauncher}`);
-      }
     }
   } catch (error) {
     console.error(`Error in run: ${error.message}`);

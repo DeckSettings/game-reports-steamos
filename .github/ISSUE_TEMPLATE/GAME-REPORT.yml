@@ -50,6 +50,7 @@ body:
     attributes:
       label: Launcher
       description: Select the launcher used to install the game. For non-Steam games, specify the store and installation tool (e.g., Lutris, Heroic Games Launcher).
+      # NOTE: When adding new launcher options here, be sure to add the labels
       options:
         - Steam
         - Heroic Games Launcher
@@ -174,14 +175,20 @@ body:
     attributes:
       label: Device
       description: Which handheld gaming device was used?
+      # NOTE: When adding new hardware here, be sure to add the labels and update the game-report-validation.json
       options:
-        - Steam Deck LCD (64GB)
-        - Steam Deck LCD (256GB/512GB)
-        - Steam Deck OLED
-        - ROG Ally Z1
-        - ROG Ally Z1 Extreme
-        - ROG Ally X
-        - Legion Go
+        - ASUS ROG Ally Z1
+        - ASUS ROG Ally Z1 Extreme
+        - ASUS ROG Ally X
+        - GPD Win 4
+        - Lenovo Legion Go
+        - Lenovo Legion Go 2
+        - Lenovo Legion Go S
+        - MSI Claw
+        - MSI Claw A8 Plus
+        - Valve Steam Deck LCD (64GB)
+        - Valve Steam Deck LCD (256GB/512GB)
+        - Valve Steam Deck OLED
       default: 1
     validations:
       required: true

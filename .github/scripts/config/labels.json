@@ -25,29 +25,59 @@
         "description": "Community feedback suggests verifying the accuracy of the report."
     },
     {
-        "name": "device:legion-go",
+        "name": "DEVICE: ASUS ROG Ally Z1",
         "color": "FFFFFF",
-        "description": "Legion Go"
+        "description": "^(ROG Ally Z1|ASUS ROG Ally Z1)$"
     },
     {
-        "name": "device:rog-ally-x",
+        "name": "DEVICE: ASUS ROG Ally Z1 Extreme",
         "color": "FFFFFF",
-        "description": "ROG Ally X"
+        "description": "^(ROG Ally Z1 Extreme|ASUS ROG Ally Z1 Extreme)$"
     },
     {
-        "name": "device:rog-ally-z1",
+        "name": "DEVICE: ASUS ROG Ally X",
         "color": "FFFFFF",
-        "description": "ROG Ally Z1"
+        "description": "^(ROG Ally X|ASUS ROG Ally X)$"
     },
     {
-        "name": "device:rog-ally-z1e",
+        "name": "DEVICE: GPD Win 4",
         "color": "FFFFFF",
-        "description": "ROG Ally Z1 Extreme"
+        "description": "^(GPD Win 4)$"
     },
     {
-        "name": "device:steam-deck",
+        "name": "DEVICE: Lenovo Legion Go",
         "color": "FFFFFF",
-        "description": "Steam Deck"
+        "description": "^(Legion Go|Lenovo Legion Go)$"
+    },
+    {
+        "name": "DEVICE: Lenovo Legion Go 2",
+        "color": "FFFFFF",
+        "description": "^(Lenovo Legion Go 2)$"
+    },
+    {
+        "name": "DEVICE: Lenovo Legion Go S",
+        "color": "FFFFFF",
+        "description": "^(Lenovo Legion Go S)$"
+    },
+    {
+        "name": "DEVICE: MSI Claw",
+        "color": "FFFFFF",
+        "description": "^(MSI Claw)$"
+    },
+    {
+        "name": "DEVICE: MSI Claw A8 Plus",
+        "color": "FFFFFF",
+        "description": "^(MSI Claw A8 Plus)$"
+    },
+    {
+        "name": "DEVICE: Valve Steam Deck",
+        "color": "FFFFFF",
+        "description": "^(Valve )?Steam Deck( OLED| LCD.*)?$"
+    },
+    {
+        "name": "DEVICE: Zotac Zone",
+        "color": "FFFFFF",
+        "description": "^(Zotac Zone)$"
     },
     {
         "name": "invalid:report-inaccurate",
@@ -60,29 +90,34 @@
         "description": "The report is missing required data or is incorrectly formatted."
     },
     {
-        "name": "launcher:bottles",
+        "name": "LAUNCHER: Bottles",
         "color": "1D76DB",
-        "description": "Bottles"
+        "description": "^(Bottles)$"
     },
     {
-        "name": "launcher:heroic",
+        "name": "LAUNCHER: Heroic",
         "color": "1D76DB",
-        "description": "Heroic Games Launcher"
+        "description": "^(Heroic|Heroic Games Launcher)$"
     },
     {
-        "name": "launcher:lutris",
+        "name": "LAUNCHER: Junk Store",
         "color": "1D76DB",
-        "description": "Lutris"
+        "description": "^(Junk Store)$"
     },
     {
-        "name": "launcher:other",
+        "name": "LAUNCHER: Lutris",
         "color": "1D76DB",
-        "description": "Other"
+        "description": "^(Lutris)$"
     },
     {
-        "name": "launcher:steam",
+        "name": "LAUNCHER: Other",
         "color": "1D76DB",
-        "description": "Steam"
+        "description": "^(Other)$"
+    },
+    {
+        "name": "LAUNCHER: Steam",
+        "color": "1D76DB",
+        "description": "^(Steam)$"
     },
     {
         "name": "note:ocr-generated-content",
