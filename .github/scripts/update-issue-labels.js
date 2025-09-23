@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:04:20 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 23rd September 2025 12:56:47 pm
+ * Last Modified: Tuesday, 23rd September 2025 1:13:10 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -57,11 +57,11 @@ async function applyLabel(
     const existingLabelNames = issue.labels.map((l) => l.name);
 
     // Determine which labels to remove (same type but different value)
-    const prefix = (labelType + ":").toLowerCase();
+    const prefix = labelType + ":";
 
     // Remove labels of this type that aren't the new one
     const labelsToRemove = existingLabelNames.filter((name) => {
-      const isSameType = name.toLowerCase().startsWith(prefix);
+      const isSameType = name.startsWith(prefix);
       const isDifferent = !newLabel || name !== newLabel;
       return isSameType && isDifferent;
     });
