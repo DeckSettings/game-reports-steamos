@@ -57,9 +57,22 @@ jobs:
               if (issue.pull_request) continue;
               if (!issue.body) continue;
 
-              // Run script
+              // Run scripts
+              console.log("Running: check-report-for-missing-data.js on issue #" + issue.number);
               execSync(
                 `GITHUB_TOKEN=${process.env.GITHUB_TOKEN} ISSUE_NUMBER=${issue.number} REPO_OWNER=${context.repo.owner} REPO_NAME=${context.repo.repo} node check-report-for-missing-data.js`,
+                { stdio: 'inherit', cwd: '.github/scripts' }
+              );
+
+              console.log("Running: update-issue-title.js on issue #" + issue.number);
+              execSync(
+                `GITHUB_TOKEN=${process.env.GITHUB_TOKEN} ISSUE_NUMBER=${issue.number} REPO_OWNER=${context.repo.owner} REPO_NAME=${context.repo.repo} node update-issue-title.js`,
+                { stdio: 'inherit', cwd: '.github/scripts' }
+              );
+
+              console.log("Running: update-issue-labels.js on issue #" + issue.number);
+              execSync(
+                `GITHUB_TOKEN=${process.env.GITHUB_TOKEN} ISSUE_NUMBER=${issue.number} REPO_OWNER=${context.repo.owner} REPO_NAME=${context.repo.repo} node update-issue-labels.js`,
                 { stdio: 'inherit', cwd: '.github/scripts' }
               );
             }
