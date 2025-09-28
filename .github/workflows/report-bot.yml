@@ -34,6 +34,7 @@ jobs:
         working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_ACTIONS_BOT_USER: DeckSettings-ReportBot
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
