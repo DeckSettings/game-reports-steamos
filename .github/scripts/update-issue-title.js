@@ -4,8 +4,8 @@
  * File Created: Thursday, 26th December 2024 2:56:33 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 2nd January 2025 11:16:13 am
- * Modified By: Josh5 (jsunnex@gmail.com)
+ * Last Modified: Sunday, 28th September 2025 2:23:45 pm
+ * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
 import { Octokit } from "@octokit/rest";
@@ -13,6 +13,32 @@ import { extractHeadingValue } from "./common.js";
 import dotenv from "dotenv";
 
 dotenv.config(); // Load environment variables from .env for local testing
+
+/**
+ * Return a value quoted/escaped for logfmt.
+ * - Always wraps in double quotes
+ * - Escapes backslashes and quotes
+ * - Replaces control chars (incl. newlines/tabs) with spaces
+ */
+function toQuotedLogfmt(value) {
+  const s = (value ?? "").toString();
+  const normalized = s
+    .replace(/[\r\n\t]+/g, " ") // linebreaks/tabs -> space
+    .replace(/[\x00-\x1F\x7F]/g, " "); // other ASCII control -> space
+  const escaped = normalized
+    .replace(/\\/g, "\\\\") // backslash
+    .replace(/"/g, '\\"'); // double quote
+  return `"${escaped}"`;
+}
+
+/**
+ * GitHub issue titles are limited (~256 chars). This keeps logfmt intact.
+ */
+function enforceTitleLimit(str, limit = 256) {
+  if (str.length <= limit) return str;
+  const ellipsis = "…";
+  return str.slice(0, limit - ellipsis.length) + ellipsis;
+}
 
 /**
  * Updates the GitHub issue title based on its body content.
@@ -30,6 +56,7 @@ async function run() {
     );
     process.exit(1);
   }
+
   // Fetch the current issue details
   const { data: issue } = await octokit.issues.get({
     owner,
@@ -41,7 +68,7 @@ async function run() {
 
   // Process issue data
   try {
-    // Extract values for "Game Name" and "Target Framerate"
+    // Extract values for "Game Name" and "Target Framerate", etc.
     const reportSummary = extractHeadingValue(lines, "Summary");
     const gameName = extractHeadingValue(lines, "Game Name");
     const targetFramerate = extractHeadingValue(lines, "Target Framerate");
@@ -61,19 +88,27 @@ async function run() {
       return;
     }
 
-    // If we have an appId and it is a number (will be '_No response_' if nothing was submitted) then we will add it, otherwise this will be an empty value
-    if (appIdRaw == "_No response_") {
+    // App ID (optional, numeric only)
+    if (appIdRaw === "_No response_") {
       appIdRaw = "";
     }
     if (!appIdRaw || isNaN(Number(appIdRaw))) {
       console.log(
         "No App ID provided in issue body, or App ID provided is not a number"
       );
-      appIdRaw = ""; // Set appIdRaw to and empty string
+      appIdRaw = "";
     }
 
     // Construct the new title
-    const newTitle = `name="${gameName}" appid="${appIdRaw}" target_framerate="${targetFramerate} title="${reportSummary}"`;
+    let newTitle =
+      `name=${toQuotedLogfmt(gameName)} ` +
+      `appid=${toQuotedLogfmt(appIdRaw)} ` +
+      `target_framerate=${toQuotedLogfmt(targetFramerate)} ` +
+      `title=${toQuotedLogfmt(reportSummary)}`;
+
+    // Enforce GitHub title limit without breaking quoting
+    newTitle = enforceTitleLimit(newTitle);
+
     console.log("Parsed from issue body:");
     console.log(`  Game Name: ${gameName}`);
     console.log(`  App ID: ${appIdRaw}`);
@@ -82,6 +117,7 @@ async function run() {
     console.log("Constructed Title:");
     console.log(`  ${newTitle}`);
     console.log(`Current issue #${issue.number} title: "${issue.title}"`);
+
     if (issue.title !== newTitle) {
       // Update the issue title
       await octokit.issues.update({
