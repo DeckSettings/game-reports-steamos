@@ -1,5 +1,8 @@
 name: 'Automations for Report Modifications'
 
+run-name: >-
+  trigger_issue_number="${{ github.event.issue.number }}" trigger_action="${{ github.event.action }}" ${{ github.event.issue.title }}
+
 on:
   issues:
     types: [opened, edited]
