@@ -33,7 +33,7 @@ jobs:
       - name: "Run ReportBot"
         working-directory: .github/scripts
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}

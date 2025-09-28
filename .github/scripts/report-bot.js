@@ -4,18 +4,21 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 23rd September 2025 11:41:26 am
+ * Last Modified: Monday, 29th September 2025 3:05:47 am
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
 import { Octokit } from "@octokit/rest";
+import { graphql as rawGraphql } from "@octokit/graphql";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Initialize Octokit with the provided GITHUB_TOKEN
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
+// Initialize Octokit (REST) and GraphQL with provided GITHUB_TOKEN
+const token = process.env.GITHUB_TOKEN;
+const octokit = new Octokit({ auth: token });
+const graphql = rawGraphql.defaults({
+  headers: { authorization: `token ${token}` },
 });
 
 const ghActionsBotUser =
@@ -87,6 +90,11 @@ Mention \`@/reportbot <command> ...details...\` in a comment. Always add a short
 @/reportbot resolve all
 \`\`\`
 
+> ["delete"] **Permanently delete this report** (Requires confirmation).
+\`\`\`
+@/reportbot delete
+\`\`\`
+This irreversibly removes the issue and all comments.
 </details>
 
 ---
@@ -94,7 +102,7 @@ Mention \`@/reportbot <command> ...details...\` in a comment. Always add a short
 ## A note to the report author (you own this report)
 You can **edit your report at any time**. Games evolve — patches improve performance, drivers change, settings meta shifts. If your results change, please **update your report** so others benefit from the freshest info.
 
-Prefer to withdraw it? That is okay too. You can **delete your report** whenever you want. You **own your report** and have full control over its lifecycle.
+Prefer to withdraw it? That is okay too. You can **permanently delete your report** with \`@/reportbot delete confirm\`. (This is irreversible.)
 
 Community members may post comments or add the labels below to highlight something they think needs attention. If you see such a label on your report, please review it and consider updating to avoid the report getting voted down. When you have addressed it, you can clear labels yourself using the author-only \`resolve\` command shown above.
 
@@ -151,6 +159,11 @@ const validCommands = {
     description:
       "Report author only. Remove one or more community labels that have been addressed. Usage: `@/reportbot resolve <label|label2|...>` or `@/reportbot resolve all`",
   },
+  delete: {
+    role: "author",
+    description:
+      "Report author only. Permanently delete this report. Usage: `@/reportbot delete confirm`",
+  },
   "suggest-spelling-check": {
     label: "community:spelling-check-suggested",
     description:
@@ -188,7 +201,7 @@ async function run() {
   const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
   const owner = process.env.REPO_OWNER;
   const repo = process.env.REPO_NAME;
-  const commentBody = process.env.COMMENT_BODY.trim();
+  const commentBody = (process.env.COMMENT_BODY || "").trim();
   const commenter = process.env.COMMENTER;
   const commentId = parseInt(process.env.COMMENT_ID, 10);
   const action = process.env.ACTION_TYPE;
@@ -214,13 +227,13 @@ async function run() {
   console.log(`Action type: ${action}`);
 
   // Extract command from the comment body
-  const commandMatch = commentBody.match(/@\/reportbot\s+([a-z-]+)/);
+  const commandMatch = commentBody.match(/@\/reportbot\s+([a-z-]+)/i);
   if (!commandMatch) {
     console.log("No valid @/reportbot command found.");
     return;
   }
 
-  const command = commandMatch[1];
+  const command = commandMatch[1].toLowerCase();
   const commandConfig = validCommands[command];
 
   if (!commandConfig) {
@@ -244,7 +257,7 @@ async function run() {
 
     // Check for additional content beyond the command
     const additionalContent = commentBody
-      .replace(/@\/reportbot\s+[a-z-]+\s*/, "")
+      .replace(/@\/reportbot\s+[a-z-]+\s*/i, "")
       .trim();
 
     // Handle author resolve messages
@@ -318,6 +331,41 @@ async function run() {
       return;
     }
 
+    if (command === "delete") {
+      const issueAuthor = await getIssueAuthorLogin(owner, repo, issueNumber);
+      if (commenter !== issueAuthor) {
+        await postComment(
+          owner,
+          repo,
+          issueNumber,
+          commentId,
+          `@${commenter} Only the report author (@${issueAuthor}) can delete this report.`
+        );
+        return;
+      }
+
+      if (additionalContent.toLowerCase() !== "confirm") {
+        await postComment(
+          owner,
+          repo,
+          issueNumber,
+          commentId,
+          `@${commenter} This will permanently delete the report and all comments. If you're sure, run:\n\n\`@/reportbot delete confirm\``
+        );
+        return;
+      }
+
+      // Perform hard delete (no follow-up comment after this point)
+      await hardDeleteIssue({
+        owner,
+        repo,
+        issueNumber,
+        actor: commenter,
+        originalCommentId: commentId,
+      });
+      return;
+    }
+
     // For label-adding commands, additional content is required
     if (!additionalContent) {
       await postComment(
@@ -369,7 +417,7 @@ async function run() {
 // Function to generate and post help text
 async function postHelpComment(owner, repo, issueNumber, commentId) {
   const helpText = Object.entries(validCommands)
-    .filter(([_, config]) => config.role != "maintainer") // Exclude maintainer-only commands
+    .filter(([_, config]) => config.role !== "maintainer") // Exclude maintainer-only commands
     .map(
       ([command, config]) =>
         `- \`@/reportbot ${command}\`\n  - ${
@@ -379,7 +427,7 @@ async function postHelpComment(owner, repo, issueNumber, commentId) {
     .join("\n");
 
   const helpMessage = `Here are the available commands for ReportBot:\n\n${helpText}`;
-  const helpFooter = `***Important:*** You cannot submit a command without providing additional information. Always include specific details to help the reporter address your suggestion.\n\n- Note: \`resolve\` can only be used by the **report author**.`;
+  const helpFooter = `***Important:*** You cannot submit a command without providing additional information. Always include specific details to help the reporter address your suggestion.\n\n- Note: \`resolve\` and \`delete\` can only be used by the **report author**.`;
 
   await postComment(
     owner,
@@ -635,6 +683,67 @@ async function resolveLabels(owner, repo, issueNumber, labels) {
   }
 
   return { removed, missing };
+}
+
+// Hard delete via GraphQL mutation
+async function hardDeleteIssue({
+  owner,
+  repo,
+  issueNumber,
+  actor,
+  originalCommentId,
+}) {
+  try {
+    // 1) Fetch the issue to get its GraphQL node id
+    const { data: issue } = await octokit.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+
+    // Log report details for record-keeping before deletion
+    console.log("=== Report deletion record ===");
+    console.log(`Title: ${issue.title}`);
+    console.log(`Author: @${issue.user?.login}`);
+    console.log(
+      "Labels:",
+      issue.labels.map((l) => l.name).join(", ") || "(none)"
+    );
+    console.log("Body:\n", issue.body || "(no body content)");
+    console.log("=== End of record ===");
+
+    const issueId = issue.node_id; // GraphQL global node ID
+
+    // 2) Perform the hard delete
+    await graphql(
+      `
+        mutation ($input: DeleteIssueInput!) {
+          deleteIssue(input: $input) {
+            clientMutationId
+          }
+        }
+      `,
+      { input: { issueId } }
+    );
+
+    console.log(`Issue #${issueNumber} permanently deleted by @${actor}.`);
+
+    // NOTE: Do NOT post a follow-up comment here; the issue no longer exists.
+  } catch (error) {
+    console.error(`Hard delete failed: ${error.message}`);
+    // Best-effort feedback if still possible
+    try {
+      await postComment(
+        owner,
+        repo,
+        issueNumber,
+        originalCommentId,
+        `@${actor} Sorry, I couldn't delete this report automatically. A maintainer may need to assist.`
+      );
+    } catch (_e) {
+      // If the issue *was* deleted before we tried to comment, ignore.
+    }
+  }
 }
 
 async function main() {
