@@ -1,4 +1,7 @@
-name: ReportBot
+name: Operations
+
+run-name: >-
+  trigger_issue_number="${{ github.event.issue.number }}" trigger_action="${{ github.event.action }}" Report Bot Operations
 
 on:
   issue_comment:
