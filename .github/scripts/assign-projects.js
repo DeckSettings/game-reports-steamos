@@ -4,8 +4,8 @@
  * File Created: Thursday, 26th December 2024 3:10:59 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Friday, 3rd January 2025 7:25:51 pm
- * Modified By: Josh5 (jsunnex@gmail.com)
+ * Last Modified: Monday, 13th October 2025 3:06:45 pm
+ * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
 import { Octokit } from "@octokit/rest";
@@ -276,13 +276,12 @@ async function createProjectV2(orgNodeId, projectTitle) {
 }
 
 /**
- * TODD... This function does nothing ATM
- * Uses "( Unknown Game Name )" if gameName is not provided.
+ * Configures the "Status" field of a project with a single option.
  * @param {string} projectId - The Node ID of the project.
  */
 async function setProjectCustomFields(projectId) {
   // Get the ID of the "Status" field
-  const searchQuery = `
+  const getStatusFieldQuery = `
     query($projectId: ID!) {
       node(id: $projectId) {
         ... on ProjectV2 {
@@ -291,10 +290,6 @@ async function setProjectCustomFields(projectId) {
               ... on ProjectV2SingleSelectField {
                 id
                 name
-                options {
-                  id
-                  name
-                }
               }
             }
           }
@@ -302,35 +297,48 @@ async function setProjectCustomFields(projectId) {
       }
     }
   `;
-  const response = await graphqlWithAuth(searchQuery, { projectId });
-  const fields = response.node.fields.nodes;
-  const statusField = fields.find((field) => field.name === "Status");
+  const response = await graphqlWithAuth(getStatusFieldQuery, { projectId });
+  const statusField = response.node.fields.nodes.find(
+    (field) => field.name === "Status"
+  );
+
   if (!statusField) {
-    throw new Error("Status field not found");
-  }
-  console.log(`Status Field ID: ${statusField.id}`);
-
-  // Ensure it's a Single Select Field
-  if (!statusField.options) {
-    throw new Error("Status field is not a Single Select Field");
+    throw new Error('Could not find the "Status" field for the project.');
   }
 
-  // Define the desired updates
-  const updates = {
-    Todo: {
-      newName: "Active",
-      description: "This report is active",
+  // Update the "Status" field with a new single option
+  const updateStatusFieldMutation = `
+    mutation($input: UpdateProjectV2FieldInput!) {
+      updateProjectV2Field(input: $input) {
+        projectV2Field {
+          ... on ProjectV2SingleSelectField {
+            name
+            options {
+              name
+              description
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const newOptions = [
+    {
+      name: "Report",
+      description: "Game Report",
+      color: "BLUE",
     },
-    "In Progress": {
-      newName: "Pending",
-      description: "This report is pending review",
+  ];
+
+  await graphqlWithAuth(updateStatusFieldMutation, {
+    input: {
+      fieldId: statusField.id,
+      singleSelectOptions: newOptions,
     },
-    Done: {
-      newName: "Closed",
-      description: "This report is inactive",
-    },
-  };
-  // TODO: Apply this
+  });
+
+  console.log('Successfully configured the "Status" field settings.');
 }
 
 /**
@@ -675,9 +683,10 @@ async function run() {
     project = await createProjectV2(orgNodeId, projectTitle);
     // Set project data
     await configureProjectData(project.id, projectTitle, gameName, appIdNum);
-    // Configure the project's status fields
-    await setProjectCustomFields(project.id);
   }
+
+  // Configure the project's status fields
+  await setProjectCustomFields(project.id);
 
   // Add the issue to the project and remove from others
   if (project) {
