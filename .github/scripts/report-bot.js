@@ -4,7 +4,7 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Monday, 29th September 2025 3:05:47 am
+ * Last Modified: Tuesday, 14th October 2025 9:00:23 am
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -355,6 +355,23 @@ async function run() {
         return;
       }
 
+      const { data: issueData } = await octokit.issues.get({
+        owner,
+        repo,
+        issue_number: issueNumber,
+      });
+
+      if ((issueData.state || "").toLowerCase() !== "closed") {
+        await postComment(
+          owner,
+          repo,
+          issueNumber,
+          commentId,
+          `@${commenter} This report must be closed before it can be permanently deleted. Please close the issue, then run \`@/reportbot delete confirm\` to proceed. Deleting is permanent and the report cannot be recovered afterwards.`
+        );
+        return;
+      }
+
       // Perform hard delete (no follow-up comment after this point)
       await hardDeleteIssue({
         owner,
@@ -362,6 +379,7 @@ async function run() {
         issueNumber,
         actor: commenter,
         originalCommentId: commentId,
+        issueData,
       });
       return;
     }
@@ -692,27 +710,25 @@ async function hardDeleteIssue({
   issueNumber,
   actor,
   originalCommentId,
+  issueData,
 }) {
   try {
-    // 1) Fetch the issue to get its GraphQL node id
-    const { data: issue } = await octokit.issues.get({
-      owner,
-      repo,
-      issue_number: issueNumber,
-    });
+    if (!issueData) {
+      throw new Error("Issue data required to perform hard delete.");
+    }
 
     // Log report details for record-keeping before deletion
     console.log("=== Report deletion record ===");
-    console.log(`Title: ${issue.title}`);
-    console.log(`Author: @${issue.user?.login}`);
+    console.log(`Title: ${issueData.title}`);
+    console.log(`Author: @${issueData.user?.login}`);
     console.log(
       "Labels:",
-      issue.labels.map((l) => l.name).join(", ") || "(none)"
+      issueData.labels.map((l) => l.name).join(", ") || "(none)"
     );
-    console.log("Body:\n", issue.body || "(no body content)");
+    console.log("Body:\n", issueData.body || "(no body content)");
     console.log("=== End of record ===");
 
-    const issueId = issue.node_id; // GraphQL global node ID
+    const issueId = issueData.node_id; // This is the GraphQL global node ID. Not the issue number.
 
     // 2) Perform the hard delete
     await graphql(
