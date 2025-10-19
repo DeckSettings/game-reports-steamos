@@ -73,6 +73,11 @@ Mention \`@/reportbot <command> ...details...\` in a comment. Always add a short
 @/reportbot suggest-verification The max power draw was listed as 5 W when it looks like you meant 15 W. The report shows a very long battery life, but at 15 W it should probably only have a few hours.
 \`\`\`
 
+> ["mark-duplicate"] Flag this report as a duplicate of an existing submission so the author can consolidate updates.
+\`\`\`
+@/reportbot mark-duplicate This looks like the same configuration and results as your report in #123. Let's keep the discussion there to avoid splitting feedback.
+\`\`\`
+
 ### Author-only commands
 
 > ["resolve"] Remove a specific label after addressing it.
@@ -127,6 +132,7 @@ Good uses:
 - Ask for missing details (\`community:clarification-requested\`).
 - Suggest a focused settings review (\`community:config-review-suggested\`).
 - Propose concrete upgrades like screenshots or short clips (\`community:improvements-suggested\`).
+- Flag a duplicate submission so discussion stays on the original report (\`community:duplicate-report\`).
 - Flag typos that reduce readability (\`community:spelling-check-suggested\`).
 - Request a double-check of a claim or metric (\`community:verification-suggested\`).
 
@@ -188,6 +194,11 @@ const validCommands = {
     label: "community:improvements-suggested",
     description:
       "Applies a label to let the reporter know you are proposing potential improvements to the report.",
+  },
+  "mark-duplicate": {
+    label: "community:duplicate-report",
+    description:
+      "Applies a label to indicate this report duplicates an existing submission and should be consolidated.",
   },
   "mark-invalid": {
     label: "invalid:report-inaccurate",

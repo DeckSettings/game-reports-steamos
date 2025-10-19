@@ -10,6 +10,11 @@
         "description": "Community feedback suggests reviewing the configuration settings."
     },
     {
+        "name": "community:duplicate-report",
+        "color": "E4E669",
+        "description": "Community feedback indicates this report duplicates an existing submission from this author."
+    },
+    {
         "name": "community:improvements-suggested",
         "color": "E4E669",
         "description": "Community feedback suggests potential improvements to this report."
