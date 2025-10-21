@@ -4,7 +4,7 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 21st October 2025 12:19:19 pm
+ * Last Modified: Tuesday, 21st October 2025 1:55:18 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -37,7 +37,7 @@ Hi! I'm **ReportBot**, here to help the community collaborate on this game repor
 
 ---
 
-Start a comment with \`/reportbot <command> ...details...\` (you can also use \`@/reportbot\`). Always add a short explanation **after** the command so the reporter knows what to do next.
+Start a comment with \`/reportbot <command> ...details...\`. Always add a short explanation **after** the command so the reporter knows what to do next.
 
 ## Examples
 
@@ -50,32 +50,38 @@ Start a comment with \`/reportbot <command> ...details...\` (you can also use \`
 
 > ["request-clarification"] Ask for more details. Usually to be added to the "Additional Notes" section.
 \`\`\`
-/reportbot request-clarification Could you clarify where the FPS was measured? For example, was the minimum FPS captured when entering the open world after the second village (where stutters and drops are most common)?
+/reportbot request-clarification
+Could you clarify where the FPS was measured? For example, was the minimum FPS captured when entering the open world after the second village (where stutters and drops are most common)?
 \`\`\`
 
 > ["suggest-config-review"] Suggest re-checking configuration details. Often used when a game or driver update may have changed results.
 \`\`\`
-/reportbot suggest-config-review This game was recently updated with performance fixes. The performance targets in your report may now be out of date and worth re-testing.
+/reportbot suggest-config-review
+This game was recently updated with performance fixes. The performance targets in your report may now be out of date and worth re-testing.
 \`\`\`
 
 > ["suggest-improvements"] Propose adding extra information or media.
 \`\`\`
-/reportbot suggest-improvements You left the "Average Battery Power Draw" field blank. Please add it so the report can include an estimated battery life calculation.
+/reportbot suggest-improvements
+You left the "Average Battery Power Draw" field blank. Please add it so the report can include an estimated battery life calculation.
 \`\`\`
 
 > ["suggest-spelling-check"] Point out typos or grammar issues.
 \`\`\`
-/reportbot suggest-spelling-check A few headings (e.g. "Graphcis") look misspelled.
+/reportbot suggest-spelling-check
+A few headings (e.g. "Graphcis") look misspelled.
 \`\`\`
 
 > ["suggest-verification"] Recommend double-checking accuracy. Use this to point out potential mistakes or inconsistencies.
 \`\`\`
-/reportbot suggest-verification The max power draw was listed as 5 W when it looks like you meant 15 W. The report shows a very long battery life, but at 15 W it should probably only have a few hours.
+/reportbot suggest-verification
+The max power draw was listed as 5 W when it looks like you meant 15 W. The report shows a very long battery life, but at 15 W it should probably only have a few hours.
 \`\`\`
 
 > ["mark-duplicate"] Flag this report as a duplicate of an existing submission so the author can consolidate updates.
 \`\`\`
-/reportbot mark-duplicate This looks like the same configuration and results as your report in #123. Let's keep the discussion there to avoid splitting feedback.
+/reportbot mark-duplicate
+This looks like the same configuration and results as your report in #123. Let's keep the discussion there to avoid splitting feedback.
 \`\`\`
 
 ### Author-only commands
@@ -100,24 +106,11 @@ Start a comment with \`/reportbot <command> ...details...\` (you can also use \`
 /reportbot delete
 \`\`\`
 This irreversibly removes the issue and all comments.
+
 </details>
 
----
-
-## A note to the report author (you own this report)
-You can **edit your report at any time**. Games evolve — patches improve performance, drivers change, settings meta shifts. If your results change, please **update your report** so others benefit from the freshest info.
-
-Prefer to withdraw it? That is okay too. You can **permanently delete your report** with \`/reportbot delete confirm\`. (This is irreversible.)
-
-Community members may post comments or add the labels below to highlight something they think needs attention. If you see such a label on your report, please review it and consider updating to avoid the report getting voted down. When you have addressed it, you can clear labels yourself using the author-only \`resolve\` command shown above.
-
----
-
-## Resolving feedback
-If you posted a feedback comment and it has been addressed, you have two ways to resolve the labels it created:
-
-1. **Edit your original comment** and append **\`[RESOLVED]\`** on its own line. ReportBot will remove the label or labels created from that comment and mark its bot reply as resolved.  
-2. **Delete your original comment.** ReportBot will automatically remove the associated labels and its reply.
+<details>
+<summary><strong>▶️ Notes on Community Labels (click to expand)</strong></summary>
 
 ---
 
@@ -135,14 +128,37 @@ Good uses:
 - Flag a duplicate submission so discussion stays on the original report (\`community:duplicate-report\`).
 - Flag typos that reduce readability (\`community:spelling-check-suggested\`).
 - Request a double-check of a claim or metric (\`community:verification-suggested\`).
+- The report appears to be a duplicate of another report by the same author (\`community:duplicate-report\`).
 
 Less ideal:
 - General disagreement without details (use a regular comment and explain).
 - Piling on multiple labels for the same point (pick the most relevant single label).
 
-> [!NOTE]
-> You can also react 👍 or 👎 to the report to express an overall opinion.
-> These reactions will affect the placement of this review in search results.
+</details>
+
+
+<details>
+<summary><strong>▶️ Resolving feedback (click to expand)</strong></summary>
+
+---
+
+If you posted a feedback comment with \`/reportbot\` and it has been addressed, you have two ways to resolve the labels it created:
+
+1. **Edit your original comment** and append **\`[RESOLVED]\`** on its own line. ReportBot will remove the label or labels created from that comment and mark its bot reply as resolved.  
+2. **Delete your original comment.** ReportBot will automatically remove the associated labels and its reply.
+
+The author can also manually remove labels using the \`/reportbot resolve <label>\` command if they feel it is invalid or they have addressed the issue that was raised.
+
+</details>
+
+---
+
+## A note to the report author (you own this report)
+You can **edit your report at any time**. Games evolve — patches improve performance, drivers change, settings meta shifts. If your results change, please **update your report** so others benefit from the freshest info.
+
+Prefer to withdraw it? That is okay too. You can **permanently delete your report** with \`/reportbot delete confirm\`. (This is irreversible.)
+
+Community members may post comments or add the labels below to highlight something they think needs attention. If you see such a label on your report, please review it and consider updating to avoid the report getting voted down. When you have addressed it, you can clear labels yourself using the author-only \`resolve\` command shown above.
 
 ---
 
@@ -153,6 +169,10 @@ Keep discussion **civil, specific, and constructive**. We are here to help one a
 
 > [!TIP]
 > Post a comment \`/reportbot help\` any time to see the full list of commands that can be used in comments below.
+
+> [!NOTE]
+> You can also react 👍 or 👎 to the report to express an overall opinion.
+> These reactions will affect the placement of this review in search results.
 `;
 
 // Define valid bot commands and optionally associated labels
@@ -246,7 +266,7 @@ async function run() {
       );
       await removeReplyComments(owner, repo, issueNumber, commentId);
     }
-    console.log("No valid /reportbot (or @/reportbot) command found.");
+    console.log("No valid /reportbot command found.");
     return;
   }
 
