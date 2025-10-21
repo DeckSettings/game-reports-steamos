@@ -4,7 +4,7 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 14th October 2025 9:00:23 am
+ * Last Modified: Tuesday, 21st October 2025 12:19:19 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -37,7 +37,7 @@ Hi! I'm **ReportBot**, here to help the community collaborate on this game repor
 
 ---
 
-Mention \`@/reportbot <command> ...details...\` in a comment. Always add a short explanation **after** the command so the reporter knows what to do next.
+Start a comment with \`/reportbot <command> ...details...\` (you can also use \`@/reportbot\`). Always add a short explanation **after** the command so the reporter knows what to do next.
 
 ## Examples
 
@@ -45,59 +45,59 @@ Mention \`@/reportbot <command> ...details...\` in a comment. Always add a short
 
 > ["help"] See everything I can do.
 \`\`\`
-@/reportbot help
+/reportbot help
 \`\`\`
 
 > ["request-clarification"] Ask for more details. Usually to be added to the "Additional Notes" section.
 \`\`\`
-@/reportbot request-clarification Could you clarify where the FPS was measured? For example, was the minimum FPS captured when entering the open world after the second village (where stutters and drops are most common)?
+/reportbot request-clarification Could you clarify where the FPS was measured? For example, was the minimum FPS captured when entering the open world after the second village (where stutters and drops are most common)?
 \`\`\`
 
 > ["suggest-config-review"] Suggest re-checking configuration details. Often used when a game or driver update may have changed results.
 \`\`\`
-@/reportbot suggest-config-review This game was recently updated with performance fixes. The performance targets in your report may now be out of date and worth re-testing.
+/reportbot suggest-config-review This game was recently updated with performance fixes. The performance targets in your report may now be out of date and worth re-testing.
 \`\`\`
 
 > ["suggest-improvements"] Propose adding extra information or media.
 \`\`\`
-@/reportbot suggest-improvements You left the "Average Battery Power Draw" field blank. Please add it so the report can include an estimated battery life calculation.
+/reportbot suggest-improvements You left the "Average Battery Power Draw" field blank. Please add it so the report can include an estimated battery life calculation.
 \`\`\`
 
 > ["suggest-spelling-check"] Point out typos or grammar issues.
 \`\`\`
-@/reportbot suggest-spelling-check A few headings (e.g. "Graphcis") look misspelled.
+/reportbot suggest-spelling-check A few headings (e.g. "Graphcis") look misspelled.
 \`\`\`
 
 > ["suggest-verification"] Recommend double-checking accuracy. Use this to point out potential mistakes or inconsistencies.
 \`\`\`
-@/reportbot suggest-verification The max power draw was listed as 5 W when it looks like you meant 15 W. The report shows a very long battery life, but at 15 W it should probably only have a few hours.
+/reportbot suggest-verification The max power draw was listed as 5 W when it looks like you meant 15 W. The report shows a very long battery life, but at 15 W it should probably only have a few hours.
 \`\`\`
 
 > ["mark-duplicate"] Flag this report as a duplicate of an existing submission so the author can consolidate updates.
 \`\`\`
-@/reportbot mark-duplicate This looks like the same configuration and results as your report in #123. Let's keep the discussion there to avoid splitting feedback.
+/reportbot mark-duplicate This looks like the same configuration and results as your report in #123. Let's keep the discussion there to avoid splitting feedback.
 \`\`\`
 
 ### Author-only commands
 
 > ["resolve"] Remove a specific label after addressing it.
 \`\`\`
-@/reportbot resolve community:clarification-requested
+/reportbot resolve community:clarification-requested
 \`\`\`
 
 > ["resolve"] Remove several labels at once.
 \`\`\`
-@/reportbot resolve community:clarification-requested community:verification-suggested
+/reportbot resolve community:clarification-requested community:verification-suggested
 \`\`\`
 
 > ["resolve"] Remove **all** managed community labels from this report.
 \`\`\`
-@/reportbot resolve all
+/reportbot resolve all
 \`\`\`
 
 > ["delete"] **Permanently delete this report** (Requires confirmation).
 \`\`\`
-@/reportbot delete
+/reportbot delete
 \`\`\`
 This irreversibly removes the issue and all comments.
 </details>
@@ -107,7 +107,7 @@ This irreversibly removes the issue and all comments.
 ## A note to the report author (you own this report)
 You can **edit your report at any time**. Games evolve — patches improve performance, drivers change, settings meta shifts. If your results change, please **update your report** so others benefit from the freshest info.
 
-Prefer to withdraw it? That is okay too. You can **permanently delete your report** with \`@/reportbot delete confirm\`. (This is irreversible.)
+Prefer to withdraw it? That is okay too. You can **permanently delete your report** with \`/reportbot delete confirm\`. (This is irreversible.)
 
 Community members may post comments or add the labels below to highlight something they think needs attention. If you see such a label on your report, please review it and consider updating to avoid the report getting voted down. When you have addressed it, you can clear labels yourself using the author-only \`resolve\` command shown above.
 
@@ -152,7 +152,7 @@ Keep discussion **civil, specific, and constructive**. We are here to help one a
 ---
 
 > [!TIP]
-> Post a comment \`@/reportbot help\` any time to see the full list of commands that can be used in comments below.
+> Post a comment \`/reportbot help\` any time to see the full list of commands that can be used in comments below.
 `;
 
 // Define valid bot commands and optionally associated labels
@@ -163,12 +163,12 @@ const validCommands = {
   resolve: {
     role: "author",
     description:
-      "Report author only. Remove one or more community labels that have been addressed. Usage: `@/reportbot resolve <label|label2|...>` or `@/reportbot resolve all`",
+      "Report author only. Remove one or more community labels that have been addressed. Usage: `/reportbot resolve <label|label2|...>` or `/reportbot resolve all`",
   },
   delete: {
     role: "author",
     description:
-      "Report author only. Permanently delete this report. Usage: `@/reportbot delete confirm`",
+      "Report author only. Permanently delete this report. Usage: `/reportbot delete confirm`",
   },
   "suggest-spelling-check": {
     label: "community:spelling-check-suggested",
@@ -238,9 +238,15 @@ async function run() {
   console.log(`Action type: ${action}`);
 
   // Extract command from the comment body
-  const commandMatch = commentBody.match(/@\/reportbot\s+([a-z-]+)/i);
+  const commandMatch = commentBody.match(/^\s*@?\/reportbot\s+([a-z-]+)/i);
   if (!commandMatch) {
-    console.log("No valid @/reportbot command found.");
+    if (action === "deleted") {
+      console.log(
+        "Comment deleted without detectable command; attempting cleanup of bot replies."
+      );
+      await removeReplyComments(owner, repo, issueNumber, commentId);
+    }
+    console.log("No valid /reportbot (or @/reportbot) command found.");
     return;
   }
 
@@ -254,7 +260,7 @@ async function run() {
       repo,
       issueNumber,
       commentId,
-      `@${commenter} Invalid command provided. Use a recognized @/reportbot command.`
+      `@${commenter} Invalid command provided. Use a recognized /reportbot command.`
     );
     return;
   }
@@ -268,7 +274,7 @@ async function run() {
 
     // Check for additional content beyond the command
     const additionalContent = commentBody
-      .replace(/@\/reportbot\s+[a-z-]+\s*/i, "")
+      .replace(/^\s*@?\/reportbot\s+[a-z-]+\s*/i, "")
       .trim();
 
     // Handle author resolve messages
@@ -292,7 +298,7 @@ async function run() {
           repo,
           issueNumber,
           commentId,
-          `@${commenter} Please specify which label(s) to resolve, e.g. \`@/reportbot resolve community:clarification-requested\` or \`@/reportbot resolve all\`.`
+          `@${commenter} Please specify which label(s) to resolve, e.g. \`/reportbot resolve community:clarification-requested\` or \`/reportbot resolve all\`.`
         );
         return;
       }
@@ -361,7 +367,7 @@ async function run() {
           repo,
           issueNumber,
           commentId,
-          `@${commenter} This will permanently delete the report and all comments. If you're sure, run:\n\n\`@/reportbot delete confirm\``
+          `@${commenter} This will permanently delete the report and all comments. If you're sure, run:\n\n\`/reportbot delete confirm\``
         );
         return;
       }
@@ -378,7 +384,7 @@ async function run() {
           repo,
           issueNumber,
           commentId,
-          `@${commenter} This report must be closed before it can be permanently deleted. Please close the issue, then run \`@/reportbot delete confirm\` to proceed. Deleting is permanent and the report cannot be recovered afterwards.`
+          `@${commenter} This report must be closed before it can be permanently deleted. Please close the issue, then run \`/reportbot delete confirm\` to proceed. Deleting is permanent and the report cannot be recovered afterwards.`
         );
         return;
       }
@@ -449,14 +455,14 @@ async function postHelpComment(owner, repo, issueNumber, commentId) {
     .filter(([_, config]) => config.role !== "maintainer") // Exclude maintainer-only commands
     .map(
       ([command, config]) =>
-        `- \`@/reportbot ${command}\`\n  - ${
+        `- \`/reportbot ${command}\`\n  - ${
           config.description || "No description available."
         }`
     )
     .join("\n");
 
   const helpMessage = `Here are the available commands for ReportBot:\n\n${helpText}`;
-  const helpFooter = `***Important:*** You cannot submit a command without providing additional information. Always include specific details to help the reporter address your suggestion.\n\n- Note: \`resolve\` and \`delete\` can only be used by the **report author**.`;
+  const helpFooter = `***Important:*** You cannot submit a command without providing additional information. Always include specific details to help the reporter address your suggestion.\n\n- You can start commands with \`/reportbot\`.\n- Note: \`resolve\` and \`delete\` can only be used by the **report author**.`;
 
   await postComment(
     owner,

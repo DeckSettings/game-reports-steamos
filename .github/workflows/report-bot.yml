@@ -14,9 +14,19 @@ jobs:
       contents: read
       issues: write
     if: >
-      contains(github.event.comment.body, '@/reportbot') &&
       !contains(github.event.comment.body, '[ReportBot Managed Comment]') &&
-      github.event.issue.pull_request == null
+      github.event.issue.pull_request == null &&
+      (
+        github.event.action == 'deleted' ||
+        contains(github.event.comment.body, '/reportbot') ||
+        contains(github.event.comment.body, '/reportBot') ||
+        contains(github.event.comment.body, '/Reportbot') ||
+        contains(github.event.comment.body, '/ReportBot') ||
+        contains(github.event.comment.body, '@/reportbot') ||
+        contains(github.event.comment.body, '@/reportBot') ||
+        contains(github.event.comment.body, '@/Reportbot') ||
+        contains(github.event.comment.body, '@/ReportBot')
+      )
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -25,15 +35,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
-          cache-dependency-path: ".github/scripts/package-lock.json"
+          cache: 'npm'
+          cache-dependency-path: '.github/scripts/package-lock.json'
 
-      - name: "Install dependencies"
+      - name: 'Install dependencies'
         working-directory: .github/scripts
         run: |
           npm ci
 
-      - name: "Run ReportBot"
+      - name: 'Run ReportBot'
         working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
