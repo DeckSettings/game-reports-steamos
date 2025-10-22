@@ -5,7 +5,7 @@ run-name: >-
 
 on:
   issues:
-    types: [opened, edited]
+    types: [opened, reopened, edited]
 
 jobs:
   post-reportbot-help:
