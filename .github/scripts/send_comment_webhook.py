@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import re
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -44,7 +45,20 @@ def _require(name: str) -> str:
     return value
 
 
+def _extract_logfmt_field(logfmt: str | None, field: str) -> str | None:
+    if not logfmt:
+        return None
+    pattern = r'\b' + re.escape(field) + r'="([^"]*)"'
+    m = re.search(pattern, logfmt)
+    if m:
+        return m.group(1)
+    return None
+
+
 def build_payload() -> dict[str, object]:
+    issue_title_raw = _env_or_none("ISSUE_TITLE")
+    report_title = _extract_logfmt_field(issue_title_raw, "title")
+
     payload = {
         "type": "general",
         "issueNumber": _int_or_none(_env_or_none("ISSUE_NUMBER")),
@@ -54,6 +68,7 @@ def build_payload() -> dict[str, object]:
         "commentUserId": _int_or_none(_env_or_none("COMMENT_USER_ID")),
         "commentUrl": _env_or_none("COMMENT_URL"),
         "commentCreatedAt": _env_or_none("COMMENT_CREATED_AT"),
+        "reportTitle": report_title,
     }
     return {key: value for key, value in payload.items() if value is not None}
 

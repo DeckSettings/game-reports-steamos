@@ -27,6 +27,7 @@ jobs:
           DV_WEBHOOK_SECRET: ${{ secrets.DV_WEBHOOK_SECRET }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_AUTHOR_ID: ${{ github.event.issue.user.id }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
           COMMENT_ID: ${{ github.event.comment.id }}
           COMMENT_BODY: ${{ github.event.comment.body }}
           COMMENT_USER_ID: ${{ github.event.comment.user.id }}
