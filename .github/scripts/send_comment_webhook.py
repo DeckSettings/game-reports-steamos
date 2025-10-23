@@ -40,7 +40,10 @@ def _int_or_none(value: str | None) -> int | None:
 def _require(name: str) -> str:
     value = _env_or_none(name)
     if value is None:
-        print(f"{name} is required but not set; skipping webhook dispatch.", file=sys.stderr)
+        print(
+            f"{name} is required but not set; skipping webhook dispatch.",
+            file=sys.stderr,
+        )
         sys.exit(1)
     return value
 
@@ -48,7 +51,7 @@ def _require(name: str) -> str:
 def _extract_logfmt_field(logfmt: str | None, field: str) -> str | None:
     if not logfmt:
         return None
-    pattern = r'\b' + re.escape(field) + r'="([^"]*)"'
+    pattern = r"\b" + re.escape(field) + r'="([^"]*)"'
     m = re.search(pattern, logfmt)
     if m:
         return m.group(1)
@@ -86,8 +89,27 @@ def send_webhook() -> None:
     # People do not need to be notified when they comment on their own report.
     comment_user_id = payload.get("commentUserId")
     issue_author_id = payload.get("issueAuthorId")
-    if comment_user_id is not None and issue_author_id is not None and comment_user_id == issue_author_id:
-        print("Comment author is the same as the issue author; skipping webhook dispatch.", file=sys.stderr)
+    if (
+        comment_user_id is not None
+        and issue_author_id is not None
+        and comment_user_id == issue_author_id
+    ):
+        print(
+            "Comment author is the same as the issue author; skipping webhook dispatch.",
+            file=sys.stderr,
+        )
+        sys.exit(0)
+
+    # If the comment body contains a command, skip sending the webhook.
+    # This is to avoid notifying users about bot commands that do not directly affect them.
+    comment_body = str(payload.get("commentBody") or "")
+    ignored_substrings = [
+        "/reportbot help",
+        "/reportbot resolve",
+        "/reportbot delete",
+    ]
+    if any(sub in comment_body for sub in ignored_substrings):
+        print("Comment contains an ignored substring; skipping webhook dispatch.", file=sys.stderr)
         sys.exit(0)
 
     data = json.dumps(payload)
