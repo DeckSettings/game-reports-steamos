@@ -8,6 +8,34 @@ on:
     types: [created, deleted]
 
 jobs:
+  notify-remote-webhook:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    if: >
+      github.event.action == 'created' &&
+      !contains(github.event.comment.body, '[ReportBot Managed Comment]')
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Send comment details webhook
+        working-directory: .github/scripts
+        env:
+          DV_WEBHOOK_URL: ${{ secrets.DV_WEBHOOK_URL }}
+          DV_WEBHOOK_SECRET: ${{ secrets.DV_WEBHOOK_SECRET }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_AUTHOR_ID: ${{ github.event.issue.user.id }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_USER_ID: ${{ github.event.comment.user.id }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          COMMENT_CREATED_AT: ${{ github.event.comment.created_at }}
+        run: |
+          set -eo pipefail
+          python3 send_comment_webhook.py
+
   handle-reportbot-command:
     runs-on: ubuntu-latest
     permissions:
