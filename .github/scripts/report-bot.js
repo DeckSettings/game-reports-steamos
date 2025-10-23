@@ -4,7 +4,7 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 23rd October 2025 6:50:00 pm
+ * Last Modified: Thursday, 23rd October 2025 7:22:50 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -28,6 +28,21 @@ console.log(`GH_ACTIONS_BOT_USER ${ghActionsBotUser}`);
 
 const args = process.argv.slice(2);
 
+const ISSUE_NUMBER = parseInt(process.env.ISSUE_NUMBER, 10);
+const COMMENT_ID = parseInt(process.env.COMMENT_ID, 10);
+const REPO_OWNER = process.env.REPO_OWNER;
+const REPO_NAME = process.env.REPO_NAME;
+const COMMENT_BODY = (process.env.COMMENT_BODY || "").trim();
+const COMMENTER = process.env.COMMENTER;
+const ACTION_TYPE = process.env.ACTION_TYPE;
+const ISSUE_AUTHOR_ID = parseInt(process.env.ISSUE_AUTHOR_ID, 10);
+const COMMENT_USER_ID = parseInt(process.env.COMMENT_USER_ID, 10);
+const DV_WEBHOOK_URL = process.env.DV_WEBHOOK_URL;
+const DV_WEBHOOK_SECRET = process.env.DV_WEBHOOK_SECRET;
+const COMMENT_URL = process.env.COMMENT_URL;
+const COMMENT_CREATED_AT = process.env.COMMENT_CREATED_AT;
+const ISSUE_TITLE = process.env.ISSUE_TITLE;
+
 const BOT_COMMENT_HEADER = "[ReportBot Managed Comment]";
 
 const WEBHOOK_IGNORED_COMMANDS = new Set(["help", "resolve", "delete"]);
@@ -35,24 +50,60 @@ const WEBHOOK_IGNORED_COMMANDS = new Set(["help", "resolve", "delete"]);
 // Global holder for parsed comment data
 let REPORT_BOT_COMMAND_DATA = null;
 
+function parseCommandFromComment() {
+  const commandMatch = COMMENT_BODY.match(/^\s*@?\/reportbot\s+([a-z-]+)/i);
+  if (!commandMatch) return;
+
+  const command = commandMatch[1].toLowerCase();
+  const parsedContext = COMMENT_BODY.replace(
+    /^\s*@?\/reportbot\s+[a-z-]+\s*/i,
+    ""
+  ).trim();
+
+  REPORT_BOT_COMMAND_DATA = {
+    command,
+    commandContext: parsedContext || null,
+  };
+}
+
 // Determine whether we should send an external webhook for the current action.
 function shouldSendWebhook() {
   try {
     const cd = REPORT_BOT_COMMAND_DATA;
-    if (!cd) return false;
+    if (!cd) {
+      console.log(
+        "SendHook: ReportBot command data is not valid. Skipping webhook."
+      );
+      return false;
+    }
 
     const cmd = (cd.command || "").toString().toLowerCase();
-    if (!cmd) return false;
+    if (!cmd) {
+      console.log(
+        "SendHook: ReportBot command is not valid. Skipping webhook."
+      );
+      return false;
+    }
 
-    if (WEBHOOK_IGNORED_COMMANDS.has(cmd)) return false;
+    if (WEBHOOK_IGNORED_COMMANDS.has(cmd)) {
+      console.log(
+        "SendHook: ReportBot command is one of the ignored commands. Skipping webhook."
+      );
+      return false;
+    }
 
     const cfg = validCommands[cmd];
-    if (cfg && cfg.role === "author") return false;
+    if (cfg && cfg.role === "author") {
+      console.log(
+        "SendHook: ReportBot command is and 'author' command. Skipping webhook."
+      );
+      return false;
+    }
 
-    const issueAuthorId = parseInt(process.env.ISSUE_AUTHOR_ID, 10);
-    const commentUserId = parseInt(process.env.COMMENT_USER_ID, 10);
-    if (issueAuthorId === commentUserId) {
-      // commenter is the issue author — skip
+    if (ISSUE_AUTHOR_ID === COMMENT_USER_ID) {
+      console.log(
+        "SendHook: Issue author and comment author are the same. Skipping webhook."
+      );
       return false;
     }
 
@@ -70,15 +121,10 @@ function shouldSendWebhook() {
 // Send a webhook with the given action log
 async function sendHook(actionLog) {
   if (!shouldSendWebhook()) {
-    console.log(
-      "sendHook: shouldSendWebhook returned false; not dispatching webhook."
-    );
     return;
   }
 
-  const webhookUrl = process.env.DV_WEBHOOK_URL;
-  const webhookSecret = process.env.DV_WEBHOOK_SECRET;
-  if (!webhookUrl || !webhookSecret) {
+  if (!DV_WEBHOOK_URL || !DV_WEBHOOK_SECRET) {
     console.log(
       "sendHook: DV_WEBHOOK_URL or DV_WEBHOOK_SECRET not set; skipping webhook dispatch."
     );
@@ -88,17 +134,17 @@ async function sendHook(actionLog) {
   const cd = REPORT_BOT_COMMAND_DATA || {};
   const payload = {
     type: "reportbot",
-    issueNumber: parseInt(process.env.ISSUE_NUMBER, 10),
-    issueAuthorId: parseInt(process.env.ISSUE_AUTHOR_ID, 10),
-    commentId: parseInt(process.env.COMMENT_ID, 10),
-    commentBody: (process.env.COMMENT_BODY || "").trim(),
-    commentUserId: parseInt(process.env.COMMENT_USER_ID, 10),
-    commentUrl: process.env.COMMENT_URL || undefined,
-    commentCreatedAt: process.env.COMMENT_CREATED_AT || undefined,
-    actionedAt: process.env.COMMENT_CREATED_AT || undefined,
-    performedBy: process.env.COMMENTER || undefined,
+    issueNumber: ISSUE_NUMBER,
+    issueAuthorId: ISSUE_AUTHOR_ID,
+    commentId: COMMENT_ID,
+    commentBody: COMMENT_BODY,
+    commentUserId: COMMENT_USER_ID,
+    commentUrl: COMMENT_URL || undefined,
+    commentCreatedAt: COMMENT_CREATED_AT || undefined,
+    actionedAt: COMMENT_CREATED_AT || undefined,
+    performedBy: COMMENTER || undefined,
     command: cd.command || undefined,
-    description: cd.description || undefined,
+    commandContext: cd.commandContext || undefined,
     actionLog: actionLog || undefined,
   };
 
@@ -117,7 +163,7 @@ async function sendHook(actionLog) {
 
   // try to extract a report title like the python sender does (logfmt)
   try {
-    const issueTitleRaw = process.env.ISSUE_TITLE || null;
+    const issueTitleRaw = ISSUE_TITLE || null;
     if (issueTitleRaw) {
       const m = /\btitle="([^"]*)"/.exec(issueTitleRaw);
       if (m) payload.reportTitle = m[1];
@@ -135,7 +181,7 @@ async function sendHook(actionLog) {
   console.log("sendHook: dispatching payload:", JSON.stringify(payload));
 
   try {
-    const url = new URL(webhookUrl);
+    const url = new URL(DV_WEBHOOK_URL);
     const options = {
       hostname: url.hostname,
       port: url.port ? Number(url.port) : url.protocol === "https:" ? 443 : 80,
@@ -143,7 +189,7 @@ async function sendHook(actionLog) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-github-workflow-secret": webhookSecret,
+        "x-github-workflow-secret": DV_WEBHOOK_SECRET,
         "Content-Length": Buffer.byteLength(data),
       },
     };
@@ -376,104 +422,79 @@ const validCommands = {
 
 // Main function to process the comment and apply or remove labels
 async function run() {
-  const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
-  const owner = process.env.REPO_OWNER;
-  const repo = process.env.REPO_NAME;
-  const commentBody = (process.env.COMMENT_BODY || "").trim();
-  const commenter = process.env.COMMENTER;
-  const commentId = parseInt(process.env.COMMENT_ID, 10);
-  const action = process.env.ACTION_TYPE;
-
   if (
-    !issueNumber ||
-    !owner ||
-    !repo ||
-    !commentBody ||
-    !commentId ||
-    !action
+    !ISSUE_NUMBER ||
+    !REPO_OWNER ||
+    !REPO_NAME ||
+    !COMMENT_ID ||
+    !COMMENT_BODY ||
+    !COMMENTER ||
+    !ACTION_TYPE
   ) {
     console.error("Missing required environment variables.");
     process.exit(1);
   }
 
   // Prevent processing of bot's own comments
-  if (commentBody.includes(BOT_COMMENT_HEADER)) {
+  if (COMMENT_BODY.includes(BOT_COMMENT_HEADER)) {
     console.log("Ignoring comment containing bot header to avoid loop.");
     return;
   }
 
-  console.log(`Action type: ${action}`);
+  console.log(`Action type: ${ACTION_TYPE}`);
+
+  parseCommandFromComment();
 
   // Extract command from the comment body
-  const commandMatch = commentBody.match(/^\s*@?\/reportbot\s+([a-z-]+)/i);
-  if (!commandMatch) {
-    if (action === "deleted") {
+
+  if (!REPORT_BOT_COMMAND_DATA) {
+    if (ACTION_TYPE === "deleted") {
       console.log(
         "Comment deleted without detectable command; attempting cleanup of bot replies."
       );
-      await removeReplyComments(owner, repo, issueNumber, commentId);
+
+      await removeReplyComments();
     }
+
     console.log("No valid /reportbot command found.");
+
     return;
   }
 
-  const command = commandMatch[1].toLowerCase();
+  const { command, commandContext } = REPORT_BOT_COMMAND_DATA;
+
   const commandConfig = validCommands[command];
-
-  const parsedDescription = commentBody
-    .replace(/^\s*@?\/reportbot\s+[a-z-]+\s*/i, "")
-    .trim();
-
-  REPORT_BOT_COMMAND_DATA = {
-    command,
-    description: parsedDescription || null,
-  };
 
   try {
     if (!commandConfig) {
       console.log(`Invalid command '${command}' provided.`);
       await postComment(
-        owner,
-        repo,
-        issueNumber,
-        commentId,
-        `@${commenter} Invalid command provided. Use a recognized /reportbot command.`
+        `@${COMMENTER} Invalid command provided. Use a recognized /reportbot command.`
       );
       return;
     }
 
-    if (action === "created") {
+    if (ACTION_TYPE === "created") {
       // Action help messages
       if (command === "help") {
-        await postHelpComment(owner, repo, issueNumber, commentId);
+        await postHelpComment();
         return;
       }
-
-      // Check for additional content beyond the command
-      const additionalContent = REPORT_BOT_COMMAND_DATA.description || "";
 
       // Handle author resolve messages
       if (command === "resolve") {
         // Only issue author can resolve
-        const issueAuthor = await getIssueAuthorLogin(owner, repo, issueNumber);
-        if (commenter !== issueAuthor) {
+        const issueAuthor = await getIssueAuthorLogin();
+        if (COMMENTER !== issueAuthor) {
           await postComment(
-            owner,
-            repo,
-            issueNumber,
-            commentId,
-            `@${commenter} Only the report author (@${issueAuthor}) can resolve labels on this issue.`
+            `@${COMMENTER} Only the report author (@${issueAuthor}) can resolve labels on this issue.`
           );
           return;
         }
 
-        if (!additionalContent) {
+        if (!commandContext) {
           await postComment(
-            owner,
-            repo,
-            issueNumber,
-            commentId,
-            `@${commenter} Please specify which label(s) to resolve, e.g. \`/reportbot resolve community:clarification-requested\` or \`/reportbot resolve all\`.`
+            `@${COMMENTER} Please specify which label(s) to resolve, e.g. \`/reportbot resolve community:clarification-requested\` or \`/reportbot resolve all\`.`
           );
           return;
         }
@@ -481,17 +502,13 @@ async function run() {
         const managed = getManagedCommunityLabels();
 
         let toRemove = [];
-        if (/^all$/i.test(additionalContent)) {
+        if (/^all$/i.test(commandContext)) {
           toRemove = managed;
         } else {
-          toRemove = normalizeRequestedLabels(additionalContent, managed);
+          toRemove = normalizeRequestedLabels(commandContext, managed);
           if (toRemove.length === 0) {
             await postComment(
-              owner,
-              repo,
-              issueNumber,
-              commentId,
-              `@${commenter} No valid managed labels found in your request. Managed labels are: \`${managed.join(
+              `@${COMMENTER} No valid managed labels found in your request. Managed labels are: \`${managed.join(
                 ", "
               )}\`.`
             );
@@ -499,12 +516,7 @@ async function run() {
           }
         }
 
-        const { removed, missing } = await resolveLabels(
-          owner,
-          repo,
-          issueNumber,
-          toRemove
-        );
+        const { removed, missing } = await resolveLabels(toRemove);
 
         const parts = [];
         if (removed.length) {
@@ -515,10 +527,6 @@ async function run() {
         }
 
         await postComment(
-          owner,
-          repo,
-          issueNumber,
-          commentId,
           parts.length ? parts.join("\n") : "No changes were made.",
           `ACTION=resolve LABELS=${toRemove.join(",")}`
         );
@@ -527,79 +535,53 @@ async function run() {
       }
 
       if (command === "delete") {
-        const issueAuthor = await getIssueAuthorLogin(owner, repo, issueNumber);
-        if (commenter !== issueAuthor) {
+        const issueAuthor = await getIssueAuthorLogin();
+        if (COMMENTER !== issueAuthor) {
           await postComment(
-            owner,
-            repo,
-            issueNumber,
-            commentId,
-            `@${commenter} Only the report author (@${issueAuthor}) can delete this report.`
+            `@${COMMENTER} Only the report author (@${issueAuthor}) can delete this report.`
           );
           return;
         }
 
-        if (additionalContent.toLowerCase() !== "confirm") {
+        if (commandContext.toLowerCase() !== "confirm") {
           await postComment(
-            owner,
-            repo,
-            issueNumber,
-            commentId,
-            `@${commenter} This will permanently delete the report and all comments. If you're sure, run:\n\n\`/reportbot delete confirm\``
+            `@${COMMENTER} This will permanently delete the report and all comments. If you're sure, run:\n\n\`/reportbot delete confirm\``
           );
           return;
         }
 
         const { data: issueData } = await octokit.issues.get({
-          owner,
-          repo,
-          issue_number: issueNumber,
+          owner: REPO_OWNER,
+          repo: REPO_NAME,
+          issue_number: ISSUE_NUMBER,
         });
 
         if ((issueData.state || "").toLowerCase() !== "closed") {
           await postComment(
-            owner,
-            repo,
-            issueNumber,
-            commentId,
-            `@${commenter} This report must be closed before it can be permanently deleted. Please close the issue, then run \`/reportbot delete confirm\` to proceed. Deleting is permanent and the report cannot be recovered afterwards.`
+            `@${COMMENTER} This report must be closed before it can be permanently deleted. Please close the issue, then run \`/reportbot delete confirm\` to proceed. Deleting is permanent and the report cannot be recovered afterwards.`
           );
           return;
         }
 
         // Perform hard delete (no follow-up comment after this point)
         await hardDeleteIssue({
-          owner,
-          repo,
-          issueNumber,
-          actor: commenter,
-          originalCommentId: commentId,
+          actor: COMMENTER,
           issueData,
         });
         return;
       }
 
       // For label-adding commands, additional content is required
-      if (!additionalContent) {
+      if (!commandContext) {
         await postComment(
-          owner,
-          repo,
-          issueNumber,
-          commentId,
-          `@${commenter} you cannot instantiate a bot command without providing details for the reporter to action.`
+          `@${COMMENTER} you cannot instantiate a bot command without providing details for the reporter to action.`
         );
         return;
       }
 
       // Apply the label to the issue if applicable
       if (commandConfig.label) {
-        await applyLabel(
-          owner,
-          repo,
-          issueNumber,
-          commentId,
-          commandConfig.label
-        );
+        await applyLabel(commandConfig.label);
       }
 
       // Execute special actions if defined (WIP)
@@ -607,22 +589,20 @@ async function run() {
         commandConfig.action &&
         typeof global[commandConfig.action] === "function"
       ) {
-        await global[commandConfig.action](issueNumber, commentId);
+        await global[commandConfig.action](ISSUE_NUMBER, COMMENT_ID);
       }
 
       // React to the comment with the eyes emoji
       // TODO: Fix this.. This is not working for some reason
-      //await addReaction(owner, repo, commentId);
-    } else if (action === "deleted") {
-      await removeReplyComments(owner, repo, issueNumber, commentId);
-    } else if (action === "edited") {
-      if (commentBody.includes("[RESOLVED]")) {
+      //await addReaction(COMMENT_ID);
+    } else if (ACTION_TYPE === "deleted") {
+      await removeReplyComments();
+    } else if (ACTION_TYPE === "edited") {
+      if (COMMENT_BODY.includes("[RESOLVED]")) {
         console.log(
-          `Detected [RESOLVED] marker in edited comment ID ${commentId}. Removing related labels.`
+          `Detected [RESOLVED] marker in edited comment ID ${COMMENT_ID}. Removing related labels.`
         );
-        await removeReplyComments(owner, repo, issueNumber, commentId, {
-          keepComment: true,
-        });
+        await removeReplyComments({ keepComment: true });
       }
     }
   } catch (err) {
@@ -634,7 +614,7 @@ async function run() {
 }
 
 // Function to generate and post help text
-async function postHelpComment(owner, repo, issueNumber, commentId) {
+async function postHelpComment() {
   const helpText = Object.entries(validCommands)
     .filter(([_, config]) => config.role !== "maintainer") // Exclude maintainer-only commands
     .map(
@@ -648,18 +628,12 @@ async function postHelpComment(owner, repo, issueNumber, commentId) {
   const helpMessage = `Here are the available commands for ReportBot:\n\n${helpText}`;
   const helpFooter = `***Important:*** You cannot submit a command without providing additional information. Always include specific details to help the reporter address your suggestion.\n\n- You can start commands with \`/reportbot\`.\n- Note: \`resolve\` and \`delete\` can only be used by the **report author**.`;
 
-  await postComment(
-    owner,
-    repo,
-    issueNumber,
-    commentId,
-    `${helpMessage}\n\n\n${helpFooter}`
-  );
+  await postComment(`${helpMessage}\n\n\n${helpFooter}`);
 }
 
 // Function to post a default help message on new issues
-async function postIssueHelpComment(owner, repo, issueNumber) {
-  if (!issueNumber || !owner || !repo) {
+async function postIssueHelpComment() {
+  if (!ISSUE_NUMBER || !REPO_OWNER || !REPO_NAME) {
     console.error(
       "Missing ISSUE_NUMBER, REPO_OWNER, or REPO_NAME environment variables."
     );
@@ -668,12 +642,12 @@ async function postIssueHelpComment(owner, repo, issueNumber) {
 
   try {
     console.log(
-      `Posting default help message on issue #${issueNumber} in ${owner}/${repo}`
+      `Posting default help message on issue #${ISSUE_NUMBER} in ${REPO_OWNER}/${REPO_NAME}`
     );
     await octokit.issues.createComment({
-      owner,
-      repo,
-      issue_number: issueNumber,
+      owner: REPO_OWNER,
+      repo: REPO_NAME,
+      issue_number: ISSUE_NUMBER,
       body: REPORT_BOT_INTRO_MESSAGE,
     });
   } catch (error) {
@@ -682,17 +656,10 @@ async function postIssueHelpComment(owner, repo, issueNumber) {
 }
 
 // Function to post a comment on the issue
-async function postComment(
-  owner,
-  repo,
-  issueNumber,
-  originalCommentId,
-  body,
-  actionLog
-) {
+async function postComment(body, actionLog) {
   const header = `*${BOT_COMMENT_HEADER}*\n\n---\n\n`;
-  const commentLink = `https://github.com/${owner}/${repo}/issues/${issueNumber}#issuecomment-${originalCommentId}`;
-  let footer = `\n\n---\n\n*This comment was triggered by comment ID: ${originalCommentId} ([link](${commentLink})).*\n*When you are done with this information, delete your original comment to clean up my messages.*`;
+  const commentLink = `https://github.com/${REPO_OWNER}/${REPO_NAME}/issues/${ISSUE_NUMBER}#issuecomment-${COMMENT_ID}`;
+  let footer = `\n\n---\n\n*This comment was triggered by comment ID: ${COMMENT_ID} ([link](${commentLink})).*\n*When you are done with this information, delete your original comment to clean up my messages.*`;
   if (actionLog) {
     footer = `${footer}\n\n---\n\n> ${actionLog}`;
   }
@@ -700,9 +667,9 @@ async function postComment(
   try {
     console.log(`Posting comment: ${body}`);
     await octokit.issues.createComment({
-      owner,
-      repo,
-      issue_number: issueNumber,
+      owner: REPO_OWNER,
+      repo: REPO_NAME,
+      issue_number: ISSUE_NUMBER,
       body: `${header}\n${body}\n${footer}`,
     });
   } catch (error) {
@@ -711,12 +678,12 @@ async function postComment(
 }
 
 // Function to add a reaction to a comment
-async function addReaction(owner, repo, commentId) {
+async function addReaction(commentId) {
   try {
     console.log(`Adding 👀 reaction to comment ID: ${commentId}`);
     await octokit.reactions.createForIssueComment({
-      owner,
-      repo,
+      owner: REPO_OWNER,
+      repo: REPO_NAME,
       comment_id: commentId,
       content: "eyes",
     });
@@ -726,20 +693,16 @@ async function addReaction(owner, repo, commentId) {
 }
 
 // Add bot label
-async function applyLabel(owner, repo, issueNumber, commentId, label) {
+async function applyLabel(label) {
   try {
     await octokit.issues.addLabels({
-      owner,
-      repo,
-      issue_number: issueNumber,
+      owner: REPO_OWNER,
+      repo: REPO_NAME,
+      issue_number: ISSUE_NUMBER,
       labels: [label],
     });
-    console.log(`Added label "${label}" to issue #${issueNumber}`);
+    console.log(`Added label "${label}" to issue #${ISSUE_NUMBER}`);
     await postComment(
-      owner,
-      repo,
-      issueNumber,
-      commentId,
       `Label "${label}" applied`,
       `ACTION=add_label LABEL=${label}`
     );
@@ -755,15 +718,15 @@ async function applyLabel(owner, repo, issueNumber, commentId, label) {
 }
 
 // Remove bot label
-async function removeLabel(owner, repo, issueNumber, label) {
+async function removeLabel(label) {
   try {
     await octokit.issues.removeLabel({
-      owner,
-      repo,
-      issue_number: issueNumber,
+      owner: REPO_OWNER,
+      repo: REPO_NAME,
+      issue_number: ISSUE_NUMBER,
       name: label,
     });
-    console.log(`Removed label "${label}" from issue #${issueNumber}`);
+    console.log(`Removed label "${label}" from issue #${ISSUE_NUMBER}`);
 
     try {
       await sendHook(`ACTION=remove_label LABEL=${label}`);
@@ -771,29 +734,23 @@ async function removeLabel(owner, repo, issueNumber, label) {
       console.error("removeLabel: sendHook failed:", e && e.message);
     }
   } catch (error) {
-    console.log(`Label not present on issue #${issueNumber}`);
+    console.log(`Label not present on issue #${ISSUE_NUMBER}`);
   }
 }
 
 // Remove bot comments associated with a deleted original comment
-async function removeReplyComments(
-  owner,
-  repo,
-  issueNumber,
-  originalCommentId,
-  options = {}
-) {
+async function removeReplyComments(options = {}) {
   const comments = await octokit.issues.listComments({
-    owner,
-    repo,
-    issue_number: issueNumber,
+    owner: REPO_OWNER,
+    repo: REPO_NAME,
+    issue_number: ISSUE_NUMBER,
   });
 
   const botComments = comments.data.filter(
     (comment) =>
       comment.user.login === ghActionsBotUser &&
       comment.body.includes(
-        `*This comment was triggered by comment ID: ${originalCommentId}`
+        `*This comment was triggered by comment ID: ${COMMENT_ID}`
       )
   );
 
@@ -807,42 +764,42 @@ async function removeReplyComments(
 
       if (action === "add_label") {
         console.log(
-          `Undoing "add_label" action: Removing label "${label}" from issue #${issueNumber}`
+          `Undoing "add_label" action: Removing label "${label}" from issue #${ISSUE_NUMBER}`
         );
-        await removeLabel(owner, repo, issueNumber, label);
+        await removeLabel(label);
       }
     }
 
     if (!options.keepComment) {
       try {
         await octokit.issues.deleteComment({
-          owner,
-          repo,
+          owner: REPO_OWNER,
+          repo: REPO_NAME,
           comment_id: comment.id,
         });
         console.log(
-          `Deleted validation comment (ID: ${comment.id}) on issue #${issueNumber}`
+          `Deleted validation comment (ID: ${comment.id}) on issue #${ISSUE_NUMBER}`
         );
       } catch (error) {
         console.error(
-          `Error deleting comment (ID: ${comment.id}) on issue #${issueNumber}: ${error.message}`
+          `Error deleting comment (ID: ${comment.id}) on issue #${ISSUE_NUMBER}: ${error.message}`
         );
       }
     } else {
       // Instead of deleting, maybe add a note that it was resolved
       try {
         await octokit.issues.updateComment({
-          owner,
-          repo,
+          owner: REPO_OWNER,
+          repo: REPO_NAME,
           comment_id: comment.id,
           body: `${comment.body}\n\n✅ *This feedback has been marked as RESOLVED by the commenter.*`,
         });
         console.log(
-          `Marked bot comment (ID: ${comment.id}) as resolved on issue #${issueNumber}`
+          `Marked bot comment (ID: ${comment.id}) as resolved on issue #${ISSUE_NUMBER}`
         );
       } catch (error) {
         console.error(
-          `Error updating comment (ID: ${comment.id}) on issue #${issueNumber}: ${error.message}`
+          `Error updating comment (ID: ${comment.id}) on issue #${ISSUE_NUMBER}: ${error.message}`
         );
       }
     }
@@ -850,11 +807,11 @@ async function removeReplyComments(
 }
 
 // Fetch the issue and return the login of the author
-async function getIssueAuthorLogin(owner, repo, issueNumber) {
+async function getIssueAuthorLogin() {
   const { data: issue } = await octokit.issues.get({
-    owner,
-    repo,
-    issue_number: issueNumber,
+    owner: REPO_OWNER,
+    repo: REPO_NAME,
+    issue_number: ISSUE_NUMBER,
   });
   return issue.user?.login;
 }
@@ -884,11 +841,11 @@ function normalizeRequestedLabels(input, managedLabels) {
 }
 
 // Remove one or many labels; returns {removed:[], missing:[]}
-async function resolveLabels(owner, repo, issueNumber, labels) {
+async function resolveLabels(labels) {
   const { data: current } = await octokit.issues.listLabelsOnIssue({
-    owner,
-    repo,
-    issue_number: issueNumber,
+    owner: REPO_OWNER,
+    repo: REPO_NAME,
+    issue_number: ISSUE_NUMBER,
   });
   const present = new Set(current.map((l) => l.name));
   const removed = [];
@@ -898,9 +855,9 @@ async function resolveLabels(owner, repo, issueNumber, labels) {
     if (present.has(label)) {
       try {
         await octokit.issues.removeLabel({
-          owner,
-          repo,
-          issue_number: issueNumber,
+          owner: REPO_OWNER,
+          repo: REPO_NAME,
+          issue_number: ISSUE_NUMBER,
           name: label,
         });
         removed.push(label);
@@ -917,14 +874,7 @@ async function resolveLabels(owner, repo, issueNumber, labels) {
 }
 
 // Hard delete via GraphQL mutation
-async function hardDeleteIssue({
-  owner,
-  repo,
-  issueNumber,
-  actor,
-  originalCommentId,
-  issueData,
-}) {
+async function hardDeleteIssue({ actor, issueData }) {
   try {
     if (!issueData) {
       throw new Error("Issue data required to perform hard delete.");
@@ -955,7 +905,7 @@ async function hardDeleteIssue({
       { input: { issueId } }
     );
 
-    console.log(`Issue #${issueNumber} permanently deleted by @${actor}.`);
+    console.log(`Issue #${ISSUE_NUMBER} permanently deleted by @${actor}.`);
 
     // NOTE: Do NOT post a follow-up comment here; the issue no longer exists.
   } catch (error) {
@@ -963,10 +913,6 @@ async function hardDeleteIssue({
     // Best-effort feedback if still possible
     try {
       await postComment(
-        owner,
-        repo,
-        issueNumber,
-        originalCommentId,
         `@${actor} Sorry, I couldn't delete this report automatically. A maintainer may need to assist.`
       );
     } catch (_e) {
@@ -977,10 +923,7 @@ async function hardDeleteIssue({
 
 async function main() {
   if (args.includes("--intro")) {
-    const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
-    const owner = process.env.REPO_OWNER;
-    const repo = process.env.REPO_NAME;
-    await postIssueHelpComment(owner, repo, issueNumber);
+    await postIssueHelpComment();
     return;
   }
 
