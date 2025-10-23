@@ -4,12 +4,13 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 21st October 2025 1:55:18 pm
+ * Last Modified: Thursday, 23rd October 2025 6:50:00 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
 import { Octokit } from "@octokit/rest";
 import { graphql as rawGraphql } from "@octokit/graphql";
+import https from "https";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -28,6 +29,152 @@ console.log(`GH_ACTIONS_BOT_USER ${ghActionsBotUser}`);
 const args = process.argv.slice(2);
 
 const BOT_COMMENT_HEADER = "[ReportBot Managed Comment]";
+
+const WEBHOOK_IGNORED_COMMANDS = new Set(["help", "resolve", "delete"]);
+
+// Global holder for parsed comment data
+let REPORT_BOT_COMMAND_DATA = null;
+
+// Determine whether we should send an external webhook for the current action.
+function shouldSendWebhook() {
+  try {
+    const cd = REPORT_BOT_COMMAND_DATA;
+    if (!cd) return false;
+
+    const cmd = (cd.command || "").toString().toLowerCase();
+    if (!cmd) return false;
+
+    if (WEBHOOK_IGNORED_COMMANDS.has(cmd)) return false;
+
+    const cfg = validCommands[cmd];
+    if (cfg && cfg.role === "author") return false;
+
+    const issueAuthorId = parseInt(process.env.ISSUE_AUTHOR_ID, 10);
+    const commentUserId = parseInt(process.env.COMMENT_USER_ID, 10);
+    if (issueAuthorId === commentUserId) {
+      // commenter is the issue author — skip
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    // On error, be conservative and skip sending
+    console.log(
+      "shouldSendWebhook: error while deciding; skipping webhook:",
+      e && e.message
+    );
+    return false;
+  }
+}
+
+// Send a webhook with the given action log
+async function sendHook(actionLog) {
+  if (!shouldSendWebhook()) {
+    console.log(
+      "sendHook: shouldSendWebhook returned false; not dispatching webhook."
+    );
+    return;
+  }
+
+  const webhookUrl = process.env.DV_WEBHOOK_URL;
+  const webhookSecret = process.env.DV_WEBHOOK_SECRET;
+  if (!webhookUrl || !webhookSecret) {
+    console.log(
+      "sendHook: DV_WEBHOOK_URL or DV_WEBHOOK_SECRET not set; skipping webhook dispatch."
+    );
+    return;
+  }
+
+  const cd = REPORT_BOT_COMMAND_DATA || {};
+  const payload = {
+    type: "reportbot",
+    issueNumber: parseInt(process.env.ISSUE_NUMBER, 10),
+    issueAuthorId: parseInt(process.env.ISSUE_AUTHOR_ID, 10),
+    commentId: parseInt(process.env.COMMENT_ID, 10),
+    commentBody: (process.env.COMMENT_BODY || "").trim(),
+    commentUserId: parseInt(process.env.COMMENT_USER_ID, 10),
+    commentUrl: process.env.COMMENT_URL || undefined,
+    commentCreatedAt: process.env.COMMENT_CREATED_AT || undefined,
+    actionedAt: process.env.COMMENT_CREATED_AT || undefined,
+    performedBy: process.env.COMMENTER || undefined,
+    command: cd.command || undefined,
+    description: cd.description || undefined,
+    actionLog: actionLog || undefined,
+  };
+
+  // If actionLog contains label info, surface it as labels array/label.
+  if (actionLog) {
+    const labelsMatch = String(actionLog).match(/LABELS?=([^\s,]+)/);
+    if (labelsMatch) {
+      payload.labels = String(labelsMatch[1])
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    const actionMatch = String(actionLog).match(/ACTION=(\w+)/);
+    if (actionMatch) payload.action = actionMatch[1];
+  }
+
+  // try to extract a report title like the python sender does (logfmt)
+  try {
+    const issueTitleRaw = process.env.ISSUE_TITLE || null;
+    if (issueTitleRaw) {
+      const m = /\btitle="([^"]*)"/.exec(issueTitleRaw);
+      if (m) payload.reportTitle = m[1];
+    }
+  } catch (e) {
+    // not critical
+  }
+
+  // strip undefined/null values
+  for (const k of Object.keys(payload)) {
+    if (payload[k] === null || payload[k] === undefined) delete payload[k];
+  }
+
+  const data = JSON.stringify(payload);
+  console.log("sendHook: dispatching payload:", JSON.stringify(payload));
+
+  try {
+    const url = new URL(webhookUrl);
+    const options = {
+      hostname: url.hostname,
+      port: url.port ? Number(url.port) : url.protocol === "https:" ? 443 : 80,
+      path: `${url.pathname || "/"}${url.search || ""}`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-github-workflow-secret": webhookSecret,
+        "Content-Length": Buffer.byteLength(data),
+      },
+    };
+
+    await new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => {
+          const body = Buffer.concat(chunks).toString("utf8");
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            console.log("sendHook: webhook dispatched successfully.");
+            resolve(undefined);
+          } else {
+            reject(
+              new Error(
+                `Webhook HTTP error: ${res.statusCode} - ${res.statusMessage} - ${body}`
+              )
+            );
+          }
+        });
+      });
+      req.on("error", (err) => reject(err));
+      req.write(data);
+      req.end();
+    });
+  } catch (err) {
+    console.error("sendHook: failed to send webhook:", err && err.message);
+  }
+}
+
 const REPORT_BOT_INTRO_MESSAGE = `*${BOT_COMMENT_HEADER}*
 
 Hi! I'm **ReportBot**, here to help the community collaborate on this game report.
@@ -273,199 +420,216 @@ async function run() {
   const command = commandMatch[1].toLowerCase();
   const commandConfig = validCommands[command];
 
-  if (!commandConfig) {
-    console.log(`Invalid command '${command}' provided.`);
-    await postComment(
-      owner,
-      repo,
-      issueNumber,
-      commentId,
-      `@${commenter} Invalid command provided. Use a recognized /reportbot command.`
-    );
-    return;
-  }
+  const parsedDescription = commentBody
+    .replace(/^\s*@?\/reportbot\s+[a-z-]+\s*/i, "")
+    .trim();
 
-  if (action === "created") {
-    // Action help messages
-    if (command === "help") {
-      await postHelpComment(owner, repo, issueNumber, commentId);
+  REPORT_BOT_COMMAND_DATA = {
+    command,
+    description: parsedDescription || null,
+  };
+
+  try {
+    if (!commandConfig) {
+      console.log(`Invalid command '${command}' provided.`);
+      await postComment(
+        owner,
+        repo,
+        issueNumber,
+        commentId,
+        `@${commenter} Invalid command provided. Use a recognized /reportbot command.`
+      );
       return;
     }
 
-    // Check for additional content beyond the command
-    const additionalContent = commentBody
-      .replace(/^\s*@?\/reportbot\s+[a-z-]+\s*/i, "")
-      .trim();
+    if (action === "created") {
+      // Action help messages
+      if (command === "help") {
+        await postHelpComment(owner, repo, issueNumber, commentId);
+        return;
+      }
 
-    // Handle author resolve messages
-    if (command === "resolve") {
-      // Only issue author can resolve
-      const issueAuthor = await getIssueAuthorLogin(owner, repo, issueNumber);
-      if (commenter !== issueAuthor) {
+      // Check for additional content beyond the command
+      const additionalContent = REPORT_BOT_COMMAND_DATA.description || "";
+
+      // Handle author resolve messages
+      if (command === "resolve") {
+        // Only issue author can resolve
+        const issueAuthor = await getIssueAuthorLogin(owner, repo, issueNumber);
+        if (commenter !== issueAuthor) {
+          await postComment(
+            owner,
+            repo,
+            issueNumber,
+            commentId,
+            `@${commenter} Only the report author (@${issueAuthor}) can resolve labels on this issue.`
+          );
+          return;
+        }
+
+        if (!additionalContent) {
+          await postComment(
+            owner,
+            repo,
+            issueNumber,
+            commentId,
+            `@${commenter} Please specify which label(s) to resolve, e.g. \`/reportbot resolve community:clarification-requested\` or \`/reportbot resolve all\`.`
+          );
+          return;
+        }
+
+        const managed = getManagedCommunityLabels();
+
+        let toRemove = [];
+        if (/^all$/i.test(additionalContent)) {
+          toRemove = managed;
+        } else {
+          toRemove = normalizeRequestedLabels(additionalContent, managed);
+          if (toRemove.length === 0) {
+            await postComment(
+              owner,
+              repo,
+              issueNumber,
+              commentId,
+              `@${commenter} No valid managed labels found in your request. Managed labels are: \`${managed.join(
+                ", "
+              )}\`.`
+            );
+            return;
+          }
+        }
+
+        const { removed, missing } = await resolveLabels(
+          owner,
+          repo,
+          issueNumber,
+          toRemove
+        );
+
+        const parts = [];
+        if (removed.length) {
+          parts.push(`✅ Removed: \`${removed.join("`, `")}\``);
+        }
+        if (missing.length) {
+          parts.push(`ℹ️ Not present: \`${missing.join("`, `")}\``);
+        }
+
         await postComment(
           owner,
           repo,
           issueNumber,
           commentId,
-          `@${commenter} Only the report author (@${issueAuthor}) can resolve labels on this issue.`
+          parts.length ? parts.join("\n") : "No changes were made.",
+          `ACTION=resolve LABELS=${toRemove.join(",")}`
         );
+
         return;
       }
 
+      if (command === "delete") {
+        const issueAuthor = await getIssueAuthorLogin(owner, repo, issueNumber);
+        if (commenter !== issueAuthor) {
+          await postComment(
+            owner,
+            repo,
+            issueNumber,
+            commentId,
+            `@${commenter} Only the report author (@${issueAuthor}) can delete this report.`
+          );
+          return;
+        }
+
+        if (additionalContent.toLowerCase() !== "confirm") {
+          await postComment(
+            owner,
+            repo,
+            issueNumber,
+            commentId,
+            `@${commenter} This will permanently delete the report and all comments. If you're sure, run:\n\n\`/reportbot delete confirm\``
+          );
+          return;
+        }
+
+        const { data: issueData } = await octokit.issues.get({
+          owner,
+          repo,
+          issue_number: issueNumber,
+        });
+
+        if ((issueData.state || "").toLowerCase() !== "closed") {
+          await postComment(
+            owner,
+            repo,
+            issueNumber,
+            commentId,
+            `@${commenter} This report must be closed before it can be permanently deleted. Please close the issue, then run \`/reportbot delete confirm\` to proceed. Deleting is permanent and the report cannot be recovered afterwards.`
+          );
+          return;
+        }
+
+        // Perform hard delete (no follow-up comment after this point)
+        await hardDeleteIssue({
+          owner,
+          repo,
+          issueNumber,
+          actor: commenter,
+          originalCommentId: commentId,
+          issueData,
+        });
+        return;
+      }
+
+      // For label-adding commands, additional content is required
       if (!additionalContent) {
         await postComment(
           owner,
           repo,
           issueNumber,
           commentId,
-          `@${commenter} Please specify which label(s) to resolve, e.g. \`/reportbot resolve community:clarification-requested\` or \`/reportbot resolve all\`.`
+          `@${commenter} you cannot instantiate a bot command without providing details for the reporter to action.`
         );
         return;
       }
 
-      const managed = getManagedCommunityLabels();
-
-      let toRemove = [];
-      if (/^all$/i.test(additionalContent)) {
-        toRemove = managed;
-      } else {
-        toRemove = normalizeRequestedLabels(additionalContent, managed);
-        if (toRemove.length === 0) {
-          await postComment(
-            owner,
-            repo,
-            issueNumber,
-            commentId,
-            `@${commenter} No valid managed labels found in your request. Managed labels are: \`${managed.join(
-              ", "
-            )}\`.`
-          );
-          return;
-        }
-      }
-
-      const { removed, missing } = await resolveLabels(
-        owner,
-        repo,
-        issueNumber,
-        toRemove
-      );
-
-      const parts = [];
-      if (removed.length) parts.push(`✅ Removed: \`${removed.join("`, `")}\``);
-      if (missing.length)
-        parts.push(`ℹ️ Not present: \`${missing.join("`, `")}\``);
-
-      await postComment(
-        owner,
-        repo,
-        issueNumber,
-        commentId,
-        parts.length ? parts.join("\n") : "No changes were made.",
-        `ACTION=resolve LABELS=${toRemove.join(",")}`
-      );
-
-      return;
-    }
-
-    if (command === "delete") {
-      const issueAuthor = await getIssueAuthorLogin(owner, repo, issueNumber);
-      if (commenter !== issueAuthor) {
-        await postComment(
+      // Apply the label to the issue if applicable
+      if (commandConfig.label) {
+        await applyLabel(
           owner,
           repo,
           issueNumber,
           commentId,
-          `@${commenter} Only the report author (@${issueAuthor}) can delete this report.`
+          commandConfig.label
         );
-        return;
       }
 
-      if (additionalContent.toLowerCase() !== "confirm") {
-        await postComment(
-          owner,
-          repo,
-          issueNumber,
-          commentId,
-          `@${commenter} This will permanently delete the report and all comments. If you're sure, run:\n\n\`/reportbot delete confirm\``
-        );
-        return;
+      // Execute special actions if defined (WIP)
+      if (
+        commandConfig.action &&
+        typeof global[commandConfig.action] === "function"
+      ) {
+        await global[commandConfig.action](issueNumber, commentId);
       }
 
-      const { data: issueData } = await octokit.issues.get({
-        owner,
-        repo,
-        issue_number: issueNumber,
-      });
-
-      if ((issueData.state || "").toLowerCase() !== "closed") {
-        await postComment(
-          owner,
-          repo,
-          issueNumber,
-          commentId,
-          `@${commenter} This report must be closed before it can be permanently deleted. Please close the issue, then run \`/reportbot delete confirm\` to proceed. Deleting is permanent and the report cannot be recovered afterwards.`
+      // React to the comment with the eyes emoji
+      // TODO: Fix this.. This is not working for some reason
+      //await addReaction(owner, repo, commentId);
+    } else if (action === "deleted") {
+      await removeReplyComments(owner, repo, issueNumber, commentId);
+    } else if (action === "edited") {
+      if (commentBody.includes("[RESOLVED]")) {
+        console.log(
+          `Detected [RESOLVED] marker in edited comment ID ${commentId}. Removing related labels.`
         );
-        return;
+        await removeReplyComments(owner, repo, issueNumber, commentId, {
+          keepComment: true,
+        });
       }
-
-      // Perform hard delete (no follow-up comment after this point)
-      await hardDeleteIssue({
-        owner,
-        repo,
-        issueNumber,
-        actor: commenter,
-        originalCommentId: commentId,
-        issueData,
-      });
-      return;
     }
-
-    // For label-adding commands, additional content is required
-    if (!additionalContent) {
-      await postComment(
-        owner,
-        repo,
-        issueNumber,
-        commentId,
-        `@${commenter} you cannot instantiate a bot command without providing details for the reporter to action.`
-      );
-      return;
-    }
-
-    // Apply the label to the issue if applicable
-    if (commandConfig.label) {
-      await applyLabel(
-        owner,
-        repo,
-        issueNumber,
-        commentId,
-        commandConfig.label
-      );
-    }
-
-    // Execute special actions if defined (WIP)
-    if (
-      commandConfig.action &&
-      typeof global[commandConfig.action] === "function"
-    ) {
-      await global[commandConfig.action](issueNumber, commentId);
-    }
-
-    // React to the comment with the eyes emoji
-    // TODO: Fix this.. This is not working for some reason
-    //await addReaction(owner, repo, commentId);
-  } else if (action === "deleted") {
-    await removeReplyComments(owner, repo, issueNumber, commentId);
-  } else if (action === "edited") {
-    if (commentBody.includes("[RESOLVED]")) {
-      console.log(
-        `Detected [RESOLVED] marker in edited comment ID ${commentId}. Removing related labels.`
-      );
-      await removeReplyComments(owner, repo, issueNumber, commentId, {
-        keepComment: true,
-      });
-    }
+  } catch (err) {
+    console.error("run() error:", err && err.message);
+  } finally {
+    // Ensure we always clear the global comment data to avoid leaking state
+    REPORT_BOT_COMMAND_DATA = null;
   }
 }
 
@@ -579,6 +743,12 @@ async function applyLabel(owner, repo, issueNumber, commentId, label) {
       `Label "${label}" applied`,
       `ACTION=add_label LABEL=${label}`
     );
+
+    try {
+      await sendHook(`ACTION=add_label LABEL=${label}`);
+    } catch (e) {
+      console.error("applyLabel: sendHook failed:", e && e.message);
+    }
   } catch (error) {
     console.error(`Error adding label: ${error.message}`);
   }
@@ -594,6 +764,12 @@ async function removeLabel(owner, repo, issueNumber, label) {
       name: label,
     });
     console.log(`Removed label "${label}" from issue #${issueNumber}`);
+
+    try {
+      await sendHook(`ACTION=remove_label LABEL=${label}`);
+    } catch (e) {
+      console.error("removeLabel: sendHook failed:", e && e.message);
+    }
   } catch (error) {
     console.log(`Label not present on issue #${issueNumber}`);
   }

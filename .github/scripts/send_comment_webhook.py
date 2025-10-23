@@ -82,6 +82,14 @@ def send_webhook() -> None:
         print("No payload data available; skipping webhook dispatch.", file=sys.stderr)
         sys.exit(1)
 
+    # If the comment author is the same as the issue author, skip sending the webhook.
+    # People do not need to be notified when they comment on their own report.
+    comment_user_id = payload.get("commentUserId")
+    issue_author_id = payload.get("issueAuthorId")
+    if comment_user_id is not None and issue_author_id is not None and comment_user_id == issue_author_id:
+        print("Comment author is the same as the issue author; skipping webhook dispatch.", file=sys.stderr)
+        sys.exit(0)
+
     data = json.dumps(payload)
     print(json.dumps(payload, indent=1))
 
