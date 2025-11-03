@@ -16,6 +16,7 @@
         "ajv": "^8.17.1",
         "ajv-draft-04": "^1.0.0",
         "ajv-formats": "^3.0.1",
-        "dotenv": "^16.4.7"
+        "dotenv": "^16.4.7",
+        "@actions/core": "^1.10.1"
     }
 }

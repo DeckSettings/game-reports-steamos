@@ -40,37 +40,6 @@ jobs:
         run: |
           node report-bot.js --intro
 
-  rate-limit-submissions:
-    if: github.event.action == 'opened'
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: '.github/scripts/package-lock.json'
-
-      - name: 'Install dependencies'
-        working-directory: .github/scripts
-        run: |
-          npm ci
-
-      - name: 'Check for recent submissions'
-        working-directory: .github/scripts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: |
-          node rate-limit.js
-
   parse-and-update-issue:
     runs-on: ubuntu-latest
     permissions:
@@ -102,7 +71,20 @@ jobs:
         run: |
           node update-issue-title.js
 
+      - name: 'Check for recent submissions'
+        if: github.event.action == 'opened'
+        id: rate_limit_check
+        working-directory: .github/scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          node rate-limit.js
+
       - name: 'Assign to project based on app ID'
+        if: steps.rate_limit_check.outputs.rate_limited != 'true'
         working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -116,6 +98,7 @@ jobs:
           node assign-projects.js
 
       - name: 'Set labels from issue body'
+        if: steps.rate_limit_check.outputs.rate_limited != 'true'
         working-directory: .github/scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

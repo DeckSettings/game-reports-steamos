@@ -8,6 +8,7 @@
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
+import * as core from "@actions/core";
 import { Octokit } from "@octokit/rest";
 import dotenv from "dotenv";
 
@@ -77,6 +78,7 @@ async function checkForRecentSubmissions(owner, repo, issue) {
     issue_number: issue.number,
     state: "closed",
   });
+  core.setOutput('rate_limited', 'true');
 }
 
 async function run() {
