@@ -85,6 +85,11 @@
         "description": "^(Zotac Zone)$"
     },
     {
+        "name": "invalid:submit-rate-limit",
+        "color": "E99695",
+        "description": "The report was submitted too quickly. Only one report is allowed every 60 seconds to prevent spam."
+    },
+    {
         "name": "invalid:report-inaccurate",
         "color": "E99695",
         "description": "The report contains inaccuracies that could not be resolved."
