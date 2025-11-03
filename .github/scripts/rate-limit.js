@@ -61,6 +61,9 @@ async function checkForRecentSubmissions(owner, repo, issue) {
     "### What to do next:",
     `- **If this report is for the same game and configuration as your previous one,** please add any additional details to the original report: #${oldestIssue.number}`,
     "- **If you intended to submit a separate report for a different configuration of the same game,** you can re-open this issue and edit the report body. If no changes are needed, you can add a space to the end of the report to trigger our automation, which will remove the invalid label.",
+    "",
+    "> [!IMPORTANT]",
+    "> To keep our repository tidy, this report will be permanently deleted within the next 24 hours if no action is taken.",
   ].join("\n");
   await octokit.issues.createComment({
     owner,
