@@ -1,14 +1,18 @@
-# 🎮 Deck Settings - Game Compatibility and Configuration Reports
+# 🎮 DeckSettings - Game Compatibility and Configuration Reports
 
 ![DeckVerified](./docs/images/DeckVerified.png)
 
-Welcome to Deck Settings – a community-driven repository focused on collecting and organizing game settings, performance tweaks, and compatibility reports specifically for handheld gaming devices like the Steam Deck, ROG Ally, and other portable gaming PCs.
+- 🔗 [**DeckVerified.Games Website**](https://deckverified.games/)
+- 🔗 [**DeckSettings Decky Plugin on GitHub**](https://github.com/DeckSettings/decky-game-settings)
+- 🔗 [**Android App on Google Play Store**](https://play.google.com/store/apps/details?id=nz.co.streamingtech.deckverified)
+
+Welcome to DeckSettings – a community-driven repository focused on collecting and organizing game settings, performance tweaks, and compatibility reports specifically for handheld gaming devices like the Steam Deck, ROG Ally, and other portable gaming PCs.
 
 By contributing game reports, you help the community optimize performance, troubleshoot issues, and create a central knowledge base for the best possible gaming experience on the Steam Deck.
 
-## 🚀 Why Deck Settings?
+## 🚀 Why DeckSettings?
 
-While platforms like [ProtonDB](https://www.protondb.com/) and [ShareDeck](https://sharedeck.games/) exist to track game compatibility, Deck Settings (and the [Deck Verified](https://deckverified.games/deck-verified/) website) was created to address key limitations found in those platforms:
+While platforms like [ProtonDB](https://www.protondb.com/) and [ShareDeck](https://sharedeck.games/) exist to track game compatibility, DeckSettings (and the [Deck Verified](https://deckverified.games/deck-verified/) website) was created to address key limitations found in those platforms:
 
 #### 1. 🔄 Editable and User-Controlled Reports
 
@@ -16,19 +20,21 @@ While platforms like [ProtonDB](https://www.protondb.com/) and [ShareDeck](https
 - If you want a report removed on ProtonDB, you need to submit a ticket and wait for admin approval.
 - ShareDeck lacks consistency in report formatting and often presents issues when trying to edit reports after submission. This makes viewing reports difficult and many reports end up looking like long paragraphs of unformatted text.
 
-👉 Deck Settings allows users to fully control their game reports. You can update or close your own reports without waiting for admin intervention.
+👉 DeckSettings allows users to fully control their game reports. You can update or close your own reports without waiting for admin intervention.
 
 #### 2. 📱 Mobile-Friendly Reporting and Viewing
 
 - Viewing or submitting reports on ProtonDB and ShareDeck can be frustrating on mobile devices.
-- Deck Settings is designed to provide a clean, mobile-friendly experience for both submitting and browsing reports.
+- DeckSettings is designed to provide a clean, mobile-friendly experience for both submitting and browsing reports.
+- An official Android app is available for submitting and editing reports on the go.
+- The official GitHub mobile app can also be used in conjunction with the Android app for managing reports.
 
-👉 For the best experience, we recommend downloading the official [GitHub mobile app](https://github.com/mobile) to easily create, edit, and view game reports on the go.
+👉 For the best experience, it is recommended to use the official [Android App](https://play.google.com/store/apps/details?id=nz.co.streamingtech.deckverified) or the [DeckVerified.Games](https://deckverified.games/) website.
 
 #### 3. 🎯 Focus on Handheld Gaming Devices
 
 - ProtonDB primarily focuses on Proton compatibility and generic Linux gaming, with a dedicated section for Steam Deck. However, it lacks dedicated support for other handheld devices.
-- Deck Settings expands compatibility reporting to handhelds like the ROG Ally, Lenovo Legion Go, and other emerging portable gaming PCs.
+- DeckSettings expands compatibility reporting to handhelds like the ROG Ally, Lenovo Legion Go, and other emerging portable gaming PCs.
 - Reports are tagged by device type, allowing users to filter and find configurations tailored to their hardware.
 
 #### 4. 🛠️ Support for Games Without Steam IDs
@@ -38,19 +44,19 @@ While platforms like [ProtonDB](https://www.protondb.com/) and [ShareDeck](https
   - Games from Itch.io, GOG, Epic Games, and other platforms.
   - Delisted Steam games that still have App IDs but cannot be reported on.
 
-👉 Deck Settings makes Steam App IDs optional. Whether the game is from Steam or elsewhere, you can still submit a full configuration report.
+👉 DeckSettings makes Steam App IDs optional. Whether the game is from Steam or elsewhere, you can still submit a full configuration report.
 
 #### 5. 💬 Community Discussion and Voting
 
-- Deck Settings leverages GitHub's issue system to enable community interaction on game reports.
+- DeckSettings leverages GitHub's issue system to enable community interaction on game reports.
 - Users can react with a 👍 (thumbs up) to indicate that a report was helpful, allowing others to easily find reliable configurations by sorting reports based on reactions.
 - If you have alternative settings or suggestions for an existing report, you can **add comments directly** to the report for further discussion.
 
-👉 Deck Settings creates a dynamic platform where reports can evolve over time, reflecting the latest tips, tweaks, and troubleshooting steps from the community.
+👉 DeckSettings creates a dynamic platform where reports can evolve over time, reflecting the latest tips, tweaks, and troubleshooting steps from the community.
 
 ## 📝 How to Submit a Game Report
 
-Submitting a game report is quick and easy.
+Submitting a game report is quick and easy. Reports can be submitted through the [DeckVerified.Games](https://deckverified.games/) website, the official Android app, or directly on GitHub.
 
 ### 📄 New Report Submission:
 
@@ -81,7 +87,11 @@ Game reports are automatically validated on submission and during a weekly sched
 
 This process ensures the database stays organized and that all reports provide the most accurate and useful information for the community.
 
-## 📊 Why Contribute to Deck Settings?
+### 🤖 OCR Data Extraction
+
+The system supports extracting data from in-game settings screenshots using a custom-built image-to-text extractor service. When a report includes screenshots of in-game settings, the image-to-text service will attempt to automatically extract the settings and populate the report, saving time and ensuring accuracy.
+
+## 📊 Why Contribute to DeckSettings?
 
 - **Full Control** – Submit, update, or delete your own reports freely.
 - **Help Others** – Your experience benefits others who may be playing the same game.
@@ -106,7 +116,7 @@ Browse and search submitted game reports by visiting the [Issues Section](https:
 
 ## ❤️ Join the Community
 
-Deck Settings is built by the community, for the community. If you’re passionate about the Steam Deck and handheld gaming, we’d love your input.
+DeckSettings is built by the community, for the community. If you’re passionate about the Steam Deck and handheld gaming, we’d love your input.
 
 👉 Submit a Game Report or start contributing today!
 
