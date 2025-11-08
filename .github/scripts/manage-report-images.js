@@ -4,7 +4,7 @@
  * File Created: Friday, 8th August 2025 12:30:32 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Monday, 8th September 2025 10:42:23 am
+ * Last Modified: Saturday, 8th November 2025 3:02:31 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -82,19 +82,38 @@ async function extractSettingsFromImages(urls) {
   };
 }
 
-function findImageUrls(markdown = "") {
-  const urls = [];
+const htmlImgRegex = () => /<img[^>]*\bsrc=["']([^"'>\s]+)["'][^>]*>/gi;
+const markdownImgRegex = () => /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/gi;
 
-  // <img ... src="...">
-  const htmlImg = /<img[^>]*\s src=["']([^"'>\s]+)["'][^>]*>/gi;
+function parseImages(markdown = "") {
+  const images = [];
   let m;
-  while ((m = htmlImg.exec(markdown)) !== null) urls.push(m[1]);
 
-  // ![alt](url "title"?)  (title optional)
-  const mdImg = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/gi;
-  while ((m = mdImg.exec(markdown)) !== null) urls.push(m[1]);
+  const htmlRegex = htmlImgRegex();
+  while ((m = htmlRegex.exec(markdown)) !== null) {
+    images.push({
+      type: "html",
+      url: m[1],
+      raw: m[0],
+      index: m.index ?? 0,
+    });
+  }
 
-  return urls;
+  const markdownRegex = markdownImgRegex();
+  while ((m = markdownRegex.exec(markdown)) !== null) {
+    images.push({
+      type: "markdown",
+      url: m[1],
+      raw: m[0],
+      index: m.index ?? 0,
+    });
+  }
+
+  return images.sort((a, b) => a.index - b.index);
+}
+
+function findImageUrls(markdown = "") {
+  return parseImages(markdown).map((img) => img.url);
 }
 
 function hasEmpty(text) {
@@ -152,19 +171,24 @@ function setSectionContent(body, heading, newContent) {
 }
 
 function stripImages(markdown = "") {
-  const htmlImg = /<img[^>]*\s src=["']([^"'>\s]+)["'][^>]*>/gi;
-  const mdImg = /!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/gi;
-  const urls = [];
-  let m;
-  while ((m = htmlImg.exec(markdown)) !== null) urls.push(m[1]);
-  while ((m = mdImg.exec(markdown)) !== null) urls.push(m[1]);
-  const withoutHtml = markdown.replace(htmlImg, "").trim();
-  const withoutAny = withoutHtml.replace(mdImg, "").trim();
-  return { cleaned: withoutAny, urls };
+  if (!markdown) return { cleaned: "", images: [] };
+  const images = parseImages(markdown);
+  const withoutHtml = markdown.replace(htmlImgRegex(), "").trim();
+  const withoutAny = withoutHtml
+    .replace(markdownImgRegex(), "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { cleaned: withoutAny, images };
 }
 
-function uniq(arr) {
-  return Array.from(new Set(arr));
+function uniqBy(arr, keyFn) {
+  const seen = new Set();
+  return arr.filter((item) => {
+    const key = keyFn(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 // Generate a section body with the provided markdown content
@@ -187,9 +211,9 @@ function rewriteIssueBodyWithSettings(body, settings) {
   const notesCurrent = getSectionContent(body, notesSectionName) ?? "";
 
   // Strip images from Display/Graphics
-  const { cleaned: displayNoImgs, urls: displayUrls } =
+  const { cleaned: displayNoImgs, images: displayImages } =
     stripImages(displayCurrent);
-  const { cleaned: graphicsNoImgs, urls: graphicsUrls } =
+  const { cleaned: graphicsNoImgs, images: graphicsImages } =
     stripImages(graphicsCurrent);
 
   let newDisplayRaw, newGraphicsRaw;
@@ -211,9 +235,13 @@ function rewriteIssueBodyWithSettings(body, settings) {
   const baseNotes =
     notesCurrent.trim() === "_No response_" ? "" : notesCurrent.trim();
 
-  const movedImgs = uniq([...displayUrls, ...graphicsUrls]);
+  const movedImgs = uniqBy(
+    [...displayImages, ...graphicsImages],
+    (img) => img.url
+  );
   const appendedImgsMd = movedImgs.length
-    ? "\n\n" + movedImgs.map((u) => `![Image](${u})`).join("\n")
+    ? "\n\n" +
+      movedImgs.map((img) => img.raw || `![Image](${img.url})`).join("\n\n")
     : "";
 
   const newNotesRaw = (baseNotes + appendedImgsMd).trim();
