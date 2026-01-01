@@ -47,10 +47,25 @@ const incompleteLabel = "invalid:template-incomplete";
 
 // Validate and label issue
 async function processIssue(owner, repo, issue) {
-  const body = issue.body || "";
+  const body = typeof issue.body === "string" ? issue.body : "";
+
+  if (body.trim() === "") {
+    await handleValidationFailure(owner, repo, issue.number, [
+      "Issue body is empty.",
+    ]);
+    return;
+  }
 
   // Build object based on extracted values
-  const reportData = buildReportData(body, validate.schema.properties)
+  let reportData;
+  try {
+    reportData = buildReportData(body, validate.schema.properties);
+  } catch (error) {
+    await handleValidationFailure(owner, repo, issue.number, [
+      `Unable to parse issue body: ${error.message}`,
+    ]);
+    return;
+  }
 
   // Build a list of errors
   const errors = [];
@@ -257,11 +272,6 @@ async function run() {
 
   if (issue.pull_request) {
     console.log("Skipping pull request.");
-    process.exit(0);
-  }
-
-  if (!issue.body) {
-    console.log("Issue body is empty.");
     process.exit(0);
   }
 
