@@ -53,9 +53,8 @@ jobs:
 
             // We'll loop through each open issue
             for (const issue of allIssues) {
-              // Skip PRs or any issue that doesn't have a body
+              // Skip PRs
               if (issue.pull_request) continue;
-              if (!issue.body) continue;
 
               // Run scripts
               console.log("Running: check-report-for-missing-data.js on issue #" + issue.number);
@@ -63,6 +62,12 @@ jobs:
                 `GITHUB_TOKEN=${process.env.GITHUB_TOKEN} ISSUE_NUMBER=${issue.number} REPO_OWNER=${context.repo.owner} REPO_NAME=${context.repo.repo} node check-report-for-missing-data.js`,
                 { stdio: 'inherit', cwd: '.github/scripts' }
               );
+
+              // Skip all other tests if the issue has no body
+              if (!issue.body) {
+                console.log(`Skipping title/label updates for issue #${issue.number} (empty body)`);
+                continue;
+              }
 
               console.log("Running: update-issue-title.js on issue #" + issue.number);
               execSync(
