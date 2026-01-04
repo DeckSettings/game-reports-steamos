@@ -23,11 +23,23 @@ const DEFAULT_LAUNCHER_LABEL = "LAUNCHER: Other";
 
 async function fetchLabels(owner, repo) {
   try {
-    const { data: labels } = await octokit.issues.listLabelsForRepo({
-      owner,
-      repo,
-    });
-    return labels.map((label) => ({
+    const perPage = 100;
+    let page = 1;
+    let allLabels = [];
+
+    while (true) {
+      const { data: labels } = await octokit.issues.listLabelsForRepo({
+        owner,
+        repo,
+        per_page: perPage,
+        page,
+      });
+      if (labels.length === 0) break;
+      allLabels = allLabels.concat(labels);
+      page += 1;
+    }
+
+    return allLabels.map((label) => ({
       name: label.name,
       description: label.description || "",
     }));
