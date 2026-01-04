@@ -4,7 +4,7 @@
  * File Created: Tuesday, 4th March 2025 3:53:38 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 23rd October 2025 7:22:50 pm
+ * Last Modified: Monday, 5th January 2026 9:20:28 am
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -49,6 +49,53 @@ const WEBHOOK_IGNORED_COMMANDS = new Set(["help", "resolve", "delete"]);
 
 // Global holder for parsed comment data
 let REPORT_BOT_COMMAND_DATA = null;
+
+function hasRequiredPermission(requiredRole, permissionLevel) {
+  if (!requiredRole) return true;
+  if (!permissionLevel) return false;
+  const role = requiredRole.toLowerCase();
+  const perm = permissionLevel.toLowerCase();
+  const levels = ["read", "triage", "write", "maintain", "admin"];
+  const permIdx = levels.indexOf(perm);
+  if (permIdx === -1) return false;
+  const requiredIdx = role === "maintainer" ? levels.indexOf("maintain") : -1;
+  if (requiredIdx === -1) return false;
+  return permIdx >= requiredIdx;
+}
+
+async function getRepoPermissionLevel(login) {
+  try {
+    const { data } = await octokit.repos.getCollaboratorPermissionLevel({
+      owner: REPO_OWNER,
+      repo: REPO_NAME,
+      username: login,
+    });
+    return data.permission || null;
+  } catch (error) {
+    console.log(
+      `RoleCheck: unable to read repo permission for ${login}: ${error.message}`
+    );
+    return null;
+  }
+}
+
+async function getOrgMembership(login) {
+  try {
+    const { data } = await octokit.orgs.getMembershipForUser({
+      org: REPO_OWNER,
+      username: login,
+    });
+    return data?.state || null;
+  } catch (error) {
+    if (error.status === 404) {
+      return "none";
+    }
+    console.log(
+      `RoleCheck: unable to read org membership for ${login}: ${error.message}`
+    );
+    return null;
+  }
+}
 
 function parseCommandFromComment() {
   const commandMatch = COMMENT_BODY.match(/^\s*@?\/reportbot\s+([a-z-]+)/i);
@@ -95,7 +142,7 @@ function shouldSendWebhook() {
     const cfg = validCommands[cmd];
     if (cfg && cfg.role === "author") {
       console.log(
-        "SendHook: ReportBot command is and 'author' command. Skipping webhook."
+        "SendHook: ReportBot command is an 'author' command. Skipping webhook."
       );
       return false;
     }
@@ -481,17 +528,53 @@ async function run() {
         return;
       }
 
+      const requiredRole = commandConfig?.role || null;
+      if (requiredRole) {
+        const issueAuthor = await getIssueAuthorLogin();
+        const commenterPerm = await getRepoPermissionLevel(COMMENTER);
+        const authorPerm = issueAuthor
+          ? await getRepoPermissionLevel(issueAuthor)
+          : null;
+        const commenterOrgState = await getOrgMembership(COMMENTER);
+
+        if (requiredRole === "author") {
+          if (COMMENTER !== issueAuthor) {
+            console.log(
+              [
+                "RoleCheck: denied command due to non-author.",
+                `command=${command}`,
+                `required_role=${requiredRole}`,
+                `commenter=${COMMENTER}`,
+                `commenter_repo_permission=${commenterPerm ?? "unknown"}`,
+                `commenter_org_membership=${commenterOrgState ?? "unknown"}`,
+                `issue_author=${issueAuthor ?? "unknown"}`,
+                `issue_author_repo_permission=${authorPerm ?? "unknown"}`,
+              ].join(" ")
+            );
+            return;
+          }
+        } else {
+          const permitted = hasRequiredPermission(requiredRole, commenterPerm);
+          if (!permitted) {
+            console.log(
+              [
+                "RoleCheck: denied command due to insufficient role.",
+                `command=${command}`,
+                `required_role=${requiredRole}`,
+                `commenter=${COMMENTER}`,
+                `commenter_repo_permission=${commenterPerm ?? "unknown"}`,
+                `commenter_org_membership=${commenterOrgState ?? "unknown"}`,
+                `issue_author=${issueAuthor ?? "unknown"}`,
+                `issue_author_repo_permission=${authorPerm ?? "unknown"}`,
+              ].join(" ")
+            );
+            return;
+          }
+        }
+      }
+
       // Handle author resolve messages
       if (command === "resolve") {
-        // Only issue author can resolve
-        const issueAuthor = await getIssueAuthorLogin();
-        if (COMMENTER !== issueAuthor) {
-          await postComment(
-            `@${COMMENTER} Only the report author (@${issueAuthor}) can resolve labels on this issue.`
-          );
-          return;
-        }
-
         if (!commandContext) {
           await postComment(
             `@${COMMENTER} Please specify which label(s) to resolve, e.g. \`/reportbot resolve community:clarification-requested\` or \`/reportbot resolve all\`.`
@@ -535,14 +618,6 @@ async function run() {
       }
 
       if (command === "delete") {
-        const issueAuthor = await getIssueAuthorLogin();
-        if (COMMENTER !== issueAuthor) {
-          await postComment(
-            `@${COMMENTER} Only the report author (@${issueAuthor}) can delete this report.`
-          );
-          return;
-        }
-
         if (commandContext.toLowerCase() !== "confirm") {
           await postComment(
             `@${COMMENTER} This will permanently delete the report and all comments. If you're sure, run:\n\n\`/reportbot delete confirm\``
