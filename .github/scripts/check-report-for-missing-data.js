@@ -4,7 +4,7 @@
  * File Created: Thursday, 26th December 2024 10:12:11 pm
  * Author: Josh5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Friday, 8th August 2025 12:50:53 pm
+ * Last Modified: Monday, 5th January 2026 9:28:34 am
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -230,18 +230,18 @@ async function removeIncompleteLabel(owner, repo, issueNumber) {
 // Re-open previously closed issue
 async function openPreviouslyClosedIssue(owner, repo, issueNumber) {
   try {
-    console.log(`Reopening issue #${issue.number} — now valid.`);
+    console.log(`Reopening issue #${issueNumber} — now valid.`);
     await octokit.issues.update({
       owner,
       repo,
-      issue_number: issue.number,
+      issue_number: issueNumber,
       state: "open",
     });
 
     await octokit.issues.createComment({
       owner,
       repo,
-      issue_number: issue.number,
+      issue_number: issueNumber,
       body:
         "Thanks for updating the report — this issue has now been reopened because all required sections appear to be complete. 🙌\n\n" +
         "If you have further questions or want help improving your report, feel free to reply here or reach out on Discord: **https://streamingtech.co.nz/discord**",
