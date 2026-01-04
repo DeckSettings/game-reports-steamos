@@ -4,7 +4,7 @@
  * File Created: Monday, 5th May 2025 11:57:32 am
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 4th November 2025 1:15:21 am
+ * Last Modified: Monday, 5th January 2026 9:11:27 am
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -88,6 +88,7 @@ async function closeOldIncompleteIssues(owner, repo) {
     if (issue.pull_request) continue;
 
     if (issue.labels.some((l) => l.name === "invalid:submit-rate-limit")) {
+      // Note: delete on next sweep (no 24h grace). This could mean only moments after the issue was created. This is accepted.
       await deleteRateLimitedIssue(issue);
       continue;
     }

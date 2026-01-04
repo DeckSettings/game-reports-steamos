@@ -4,7 +4,7 @@
  * File Created: Monday, 3rd November 2025 10:00:00 am
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Tuesday, 4th November 2025 12:04:02 am
+ * Last Modified: Monday, 5th January 2026 9:10:32 am
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -54,6 +54,7 @@ async function checkForRecentSubmissions(owner, repo, issue) {
     issue_number: issue.number,
     labels: ["invalid:submit-rate-limit"],
   });
+  // Note: Deletion may occur sooner than 24 hours (next daily sweep). This is accepted.
   const commentBody = [
     "**Rate Limited:** This report was submitted too quickly after another.",
     "",
@@ -78,7 +79,7 @@ async function checkForRecentSubmissions(owner, repo, issue) {
     issue_number: issue.number,
     state: "closed",
   });
-  core.setOutput('rate_limited', 'true');
+  core.setOutput("rate_limited", "true");
 }
 
 async function run() {
