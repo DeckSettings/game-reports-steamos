@@ -30,6 +30,11 @@
         "description": "Community feedback suggests verifying the accuracy of the report."
     },
     {
+        "name": "DEVICE: ASUS ROG Ally X",
+        "color": "FFFFFF",
+        "description": "^(ROG Ally X|ASUS ROG Ally X)$"
+    },
+    {
         "name": "DEVICE: ASUS ROG Ally Z1",
         "color": "FFFFFF",
         "description": "^(ROG Ally Z1|ASUS ROG Ally Z1)$"
@@ -38,11 +43,6 @@
         "name": "DEVICE: ASUS ROG Ally Z1 Extreme",
         "color": "FFFFFF",
         "description": "^(ROG Ally Z1 Extreme|ASUS ROG Ally Z1 Extreme)$"
-    },
-    {
-        "name": "DEVICE: ASUS ROG Ally X",
-        "color": "FFFFFF",
-        "description": "^(ROG Ally X|ASUS ROG Ally X)$"
     },
     {
         "name": "DEVICE: GPD Win 4",
@@ -90,14 +90,14 @@
         "description": "^(Zotac Zone)$"
     },
     {
-        "name": "invalid:submit-rate-limit",
-        "color": "E99695",
-        "description": "The report was submitted too quickly. Only one report is allowed every 60 seconds to prevent spam."
-    },
-    {
         "name": "invalid:report-inaccurate",
         "color": "E99695",
         "description": "The report contains inaccuracies that could not be resolved."
+    },
+    {
+        "name": "invalid:submit-rate-limit",
+        "color": "E99695",
+        "description": "The report was submitted too quickly. Only one report is allowed every 60 seconds to prevent spam."
     },
     {
         "name": "invalid:template-incomplete",
