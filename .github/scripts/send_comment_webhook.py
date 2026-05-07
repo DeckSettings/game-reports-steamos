@@ -109,7 +109,10 @@ def send_webhook() -> None:
         "/reportbot delete",
     ]
     if any(sub in comment_body for sub in ignored_substrings):
-        print("Comment contains an ignored substring; skipping webhook dispatch.", file=sys.stderr)
+        print(
+            "Comment contains an ignored substring; skipping webhook dispatch.",
+            file=sys.stderr,
+        )
         sys.exit(0)
 
     data = json.dumps(payload)
@@ -130,7 +133,26 @@ def send_webhook() -> None:
             response.read()
         print("Webhook dispatched successfully.")
     except urllib.error.HTTPError as error:
+        response_body = ""
+        try:
+            response_body = error.read().decode("utf-8", errors="replace")
+        except Exception:
+            response_body = "<unable to read response body>"
+
+        response_headers = {
+            "content-type": error.headers.get("Content-Type"),
+            "server": error.headers.get("Server"),
+            "cf-ray": error.headers.get("CF-RAY"),
+            "location": error.headers.get("Location"),
+        }
+
         print(f"Webhook HTTP error: {error.code} - {error.reason}", file=sys.stderr)
+        print(
+            "Webhook response headers: "
+            + json.dumps({k: v for k, v in response_headers.items() if v}, indent=1),
+            file=sys.stderr,
+        )
+        print(f"Webhook response body:\n{response_body}", file=sys.stderr)
         sys.exit(1)
     except urllib.error.URLError as error:
         print(f"Webhook request failed: {error}", file=sys.stderr)
