@@ -123,6 +123,7 @@ def send_webhook() -> None:
         data=data.encode("utf-8"),
         headers={
             "Content-Type": "application/json",
+            "User-Agent": "DeckSettings-Webhook/1.0",
             "x-github-workflow-secret": webhook_secret,
         },
         method="POST",
