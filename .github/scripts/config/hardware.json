@@ -2,6 +2,9 @@
     "devices": [
         {
             "name": "ASUS ROG Ally Z1",
+            "aliases": [
+                "ROG Ally Z1"
+            ],
             "battery_size_wh": 40.3,
             "max_display_resolution": "1920x1080",
             "max_refresh_rate": 120,
@@ -11,6 +14,9 @@
         },
         {
             "name": "ASUS ROG Ally Z1 Extreme",
+            "aliases": [
+                "ROG Ally Z1 Extreme"
+            ],
             "battery_size_wh": 40.3,
             "max_display_resolution": "1920x1080",
             "max_refresh_rate": 120,
@@ -20,6 +26,9 @@
         },
         {
             "name": "ASUS ROG Ally X",
+            "aliases": [
+                "ROG Ally X"
+            ],
             "battery_size_wh": 80,
             "max_display_resolution": "1920x1080",
             "max_refresh_rate": 120,
@@ -95,6 +104,9 @@
         },
         {
             "name": "Valve Steam Deck LCD (64GB)",
+            "aliases": [
+                "Steam Deck LCD (64GB)"
+            ],
             "battery_size_wh": 40,
             "max_display_resolution": "1280x800",
             "max_refresh_rate": 60,
@@ -104,6 +116,9 @@
         },
         {
             "name": "Valve Steam Deck LCD (256GB/512GB)",
+            "aliases": [
+                "Steam Deck LCD (256GB/512GB)"
+            ],
             "battery_size_wh": 40,
             "max_display_resolution": "1280x800",
             "max_refresh_rate": 60,
@@ -113,6 +128,9 @@
         },
         {
             "name": "Valve Steam Deck OLED",
+            "aliases": [
+                "Steam Deck OLED"
+            ],
             "battery_size_wh": 50,
             "max_display_resolution": "1920x1080",
             "max_refresh_rate": 90,

@@ -4,7 +4,7 @@
  * File Created: Friday, 8th August 2025 12:30:32 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Thursday, 7th May 2026 6:25:22 pm
+ * Last Modified: Thursday, 7th May 2026 6:47:09 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -36,6 +36,7 @@ addFormats(ajv);
 
 // Read JSON schema
 let validate;
+let hardwareConfig;
 try {
   const configPath = path.resolve(
     path.dirname(new URL(import.meta.url).pathname),
@@ -46,6 +47,18 @@ try {
   console.log("Loaded validation schema from JSON.");
 } catch (error) {
   console.error("Failed to load validation schema:", error);
+  process.exit(1);
+}
+
+try {
+  const hardwarePath = path.resolve(
+    path.dirname(new URL(import.meta.url).pathname),
+    "config/hardware.json",
+  );
+  hardwareConfig = JSON.parse(fs.readFileSync(hardwarePath, "utf-8"));
+  console.log("Loaded hardware config from JSON.");
+} catch (error) {
+  console.error("Failed to load hardware config:", error);
   process.exit(1);
 }
 
@@ -175,6 +188,80 @@ function findImageUrls(markdown = "") {
 function hasEmpty(text) {
   const t = (text || "").trim();
   return t.length === 0 || t === "_No response_";
+}
+
+function findHardwareDevice(deviceName = "") {
+  const devices = hardwareConfig?.devices ?? [];
+  const target = deviceName.trim().toLowerCase();
+
+  if (!target) {
+    return null;
+  }
+
+  return (
+    devices.find((device) => {
+      const names = [device.name, ...(device.aliases ?? [])]
+        .filter(Boolean)
+        .map((value) => value.toLowerCase());
+      return names.includes(target);
+    }) ?? null
+  );
+}
+
+function buildResolutionFallback(deviceName = "") {
+  const hardwareDevice = findHardwareDevice(deviceName);
+  const resolution = hardwareDevice?.max_display_resolution?.trim();
+
+  if (!resolution) {
+    return null;
+  }
+
+  return `- **RESOLUTION:** ${resolution}`;
+}
+
+// Some games do not have any display settings.
+// We should not prevent reports being submitted on that count.
+// We can always just assign the display resolution for them and carry on.
+function finaliseGameSettings(settings, deviceName = "") {
+  if (!settings) {
+    return settings;
+  }
+
+  // Check if we have any empty settings to start off with
+  const display = !hasEmpty(settings.game_display_settings)
+    ? settings.game_display_settings.trim()
+    : null;
+  const graphics = !hasEmpty(settings.game_graphics_settings)
+    ? settings.game_graphics_settings.trim()
+    : null;
+
+  // If we have empty display but we do have graphics settings,
+  // move the parsed graphics settings to the display settings.
+  if (!display && graphics) {
+    return {
+      game_display_settings: graphics,
+      game_graphics_settings: null,
+    };
+  }
+
+  // If both parsed settings are empty, just add the hardware
+  // display resolution as the only field to avoid having the
+  // report being submitted as incomplete
+  if (!display && !graphics) {
+    const resolutionFallback = buildResolutionFallback(deviceName);
+    if (resolutionFallback) {
+      return {
+        game_display_settings: resolutionFallback,
+        game_graphics_settings: null,
+      };
+    }
+  }
+
+  // Nice! We have bout display and graphics settings parsed from images...
+  return {
+    game_display_settings: display,
+    game_graphics_settings: graphics,
+  };
 }
 
 function findSectionRange(body, heading) {
@@ -532,7 +619,10 @@ async function processIssue(owner, repo, issue) {
   );
 
   // Use OCR service to read Game settings from the screenshots
-  const settings = await extractSettingsFromImages(imageUrls);
+  const settings = finaliseGameSettings(
+    await extractSettingsFromImages(imageUrls),
+    reportData["Device"] || "",
+  );
 
   // Update original body with parsed settings and migrate images to end of "Additional Notes" section
   const { body: updatedBody, movedCount } = rewriteIssueBodyWithSettings(
