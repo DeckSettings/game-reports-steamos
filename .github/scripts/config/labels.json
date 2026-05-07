@@ -60,9 +60,14 @@
         "description": "^(Lenovo Legion Go 2)$"
     },
     {
-        "name": "DEVICE: Lenovo Legion Go S",
+        "name": "DEVICE: Lenovo Legion Go S Z1E",
         "color": "FFFFFF",
-        "description": "^(Lenovo Legion Go S)$"
+        "description": "^(Lenovo Legion Go S|Lenovo Legion Go S Z1E)$"
+    },
+    {
+        "name": "DEVICE: Lenovo Legion Go S Z2Go",
+        "color": "FFFFFF",
+        "description": "^(Lenovo Legion Go S Z2Go)$"
     },
     {
         "name": "DEVICE: MSI Claw",

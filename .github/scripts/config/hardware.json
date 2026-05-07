@@ -55,13 +55,25 @@
             "max_gpu_clk": 1600
         },
         {
-            "name": "Lenovo Legion Go S",
+            "name": "Lenovo Legion Go S Z1E",
+            "aliases": [
+                "Lenovo Legion Go S"
+            ],
             "battery_size_wh": 55.5,
             "max_display_resolution": "1920x1200",
             "max_refresh_rate": 120,
             "supports_vrr": true,
             "max_tdp_w": 30,
             "max_gpu_clk": 2700
+        },
+        {
+            "name": "Lenovo Legion Go S Z2Go",
+            "battery_size_wh": 55.5,
+            "max_display_resolution": "1920x1200",
+            "max_refresh_rate": 120,
+            "supports_vrr": true,
+            "max_tdp_w": 33,
+            "max_gpu_clk": 2200
         },
         {
             "name": "MSI Claw",
