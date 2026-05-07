@@ -4,7 +4,7 @@
  * File Created: Friday, 8th August 2025 12:30:32 pm
  * Author: Josh.5 (jsunnex@gmail.com)
  * -----
- * Last Modified: Saturday, 8th November 2025 3:02:31 pm
+ * Last Modified: Thursday, 7th May 2026 6:25:22 pm
  * Modified By: Josh.5 (jsunnex@gmail.com)
  */
 
@@ -39,7 +39,7 @@ let validate;
 try {
   const configPath = path.resolve(
     path.dirname(new URL(import.meta.url).pathname),
-    "config/game-report-validation.json"
+    "config/game-report-validation.json",
   );
   const schema = JSON.parse(fs.readFileSync(configPath, "utf-8"));
   validate = ajv.compile(schema);
@@ -51,8 +51,59 @@ try {
 
 // Label for auto-extracted content
 const ocrGeneratedContentLabel = "note:ocr-generated-content";
+const maxOcrRetries = 3;
+const retryDelayMs = 1000;
+const ocrRequestTimeoutMs = 120000;
 
 // === Helpers ===
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableOcrError(error) {
+  const status = error?.status;
+  const causeCode = error?.cause?.code;
+  const message = error?.message || "";
+  const errorName = error?.name || "";
+
+  return (
+    status === 429 ||
+    status >= 500 ||
+    errorName === "TimeoutError" ||
+    errorName === "AbortError" ||
+    causeCode === "UND_ERR_SOCKET" ||
+    causeCode === "ECONNRESET" ||
+    causeCode === "ETIMEDOUT" ||
+    message.includes("fetch failed") ||
+    message.includes("timed out") ||
+    message.includes("ECONNRESET") ||
+    message.includes("aborted")
+  );
+}
+
+async function withOcrRetry(operationName, fn) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxOcrRetries; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableOcrError(error) || attempt === maxOcrRetries) {
+        throw error;
+      }
+
+      console.warn(
+        `${operationName} failed on attempt ${attempt}/${maxOcrRetries}: ${error.message}`,
+      );
+      await sleep(retryDelayMs * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
 async function extractSettingsFromImages(urls) {
   const endpoint = process.env.OCR_API_ENDPOINT;
   const apiKey = process.env.OCR_API_KEY;
@@ -60,26 +111,31 @@ async function extractSettingsFromImages(urls) {
     throw new Error("Missing OCR_API_ENDPOINT or OCR_API_KEY in environment.");
   }
 
-  const resp = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-    },
-    body: JSON.stringify({ image_urls: urls }),
-  });
+  return withOcrRetry("OCR image extraction", async () => {
+    const resp = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+      },
+      signal: AbortSignal.timeout(ocrRequestTimeoutMs),
+      body: JSON.stringify({ image_urls: urls }),
+    });
 
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(
-      `OCR service error: status ${resp.status} body: ${text?.slice(0, 500)}`
-    );
-  }
-  const data = await resp.json();
-  return {
-    game_display_settings: data.game_display_settings ?? null,
-    game_graphics_settings: data.game_graphics_settings ?? null,
-  };
+    if (!resp.ok) {
+      const text = await resp.text();
+      const error = new Error(
+        `OCR service error: status ${resp.status} body: ${text?.slice(0, 500)}`,
+      );
+      error.status = resp.status;
+      throw error;
+    }
+    const data = await resp.json();
+    return {
+      game_display_settings: data.game_display_settings ?? null,
+      game_graphics_settings: data.game_graphics_settings ?? null,
+    };
+  });
 }
 
 const htmlImgRegex = () => /<img[^>]*\bsrc=["']([^"'>\s]+)["'][^>]*>/gi;
@@ -237,7 +293,7 @@ function rewriteIssueBodyWithSettings(body, settings) {
 
   const movedImgs = uniqBy(
     [...displayImages, ...graphicsImages],
-    (img) => img.url
+    (img) => img.url,
   );
   const appendedImgsMd = movedImgs.length
     ? "\n\n" +
@@ -262,11 +318,11 @@ async function updateIssueBody(
   repo,
   issueNumber,
   updatedBody,
-  movedCount
+  movedCount,
 ) {
   if (dryRun) {
     console.log(
-      `DRY RUN: would update issue #${issueNumber}. Images moved: ${movedCount}`
+      `DRY RUN: would update issue #${issueNumber}. Images moved: ${movedCount}`,
     );
     console.log(updatedBody);
   } else {
@@ -277,7 +333,7 @@ async function updateIssueBody(
       body: updatedBody,
     });
     console.log(
-      `Updated issue #${issueNumber} body. Images moved: ${movedCount}`
+      `Updated issue #${issueNumber} body. Images moved: ${movedCount}`,
     );
   }
 }
@@ -286,7 +342,7 @@ async function updateIssueBody(
 async function addOcrGeneratedContentLabel(owner, repo, issueNumber) {
   if (dryRun) {
     console.log(
-      `DRY RUN: would add label "${ocrGeneratedContentLabel}" to issue #${issueNumber}`
+      `DRY RUN: would add label "${ocrGeneratedContentLabel}" to issue #${issueNumber}`,
     );
   } else {
     await octokit.issues.addLabels({
@@ -297,7 +353,7 @@ async function addOcrGeneratedContentLabel(owner, repo, issueNumber) {
     });
   }
   console.log(
-    `Added label "${ocrGeneratedContentLabel}" to issue #${issueNumber}`
+    `Added label "${ocrGeneratedContentLabel}" to issue #${issueNumber}`,
   );
 }
 
@@ -306,13 +362,13 @@ async function postSuggestedSettingsComment(
   owner,
   repo,
   issueNumber,
-  settings
+  settings,
 ) {
   const displayContent = generateReportSectionMarkdown(
-    settings.game_display_settings
+    settings.game_display_settings,
   );
   const graphicsContent = generateReportSectionMarkdown(
-    settings.game_graphics_settings
+    settings.game_graphics_settings,
   );
 
   const commentBody =
@@ -335,7 +391,7 @@ async function postSuggestedSettingsComment(
 
   if (dryRun) {
     console.log(
-      `DRY RUN: would post suggested settings comment on issue #${issueNumber}:`
+      `DRY RUN: would post suggested settings comment on issue #${issueNumber}:`,
     );
     console.log(commentBody);
   } else {
@@ -360,13 +416,13 @@ async function removeSuggestedSettingsComment(owner, repo, issueNumber) {
   const botComments = comments.data.filter(
     (comment) =>
       comment.user.login === ghActionsBotUser &&
-      comment.body.includes("**Settings Read From Screenshots**")
+      comment.body.includes("**Settings Read From Screenshots**"),
   );
 
   for (const comment of botComments) {
     if (dryRun) {
       console.log(
-        `DRY RUN: would have deleted suggested settings comment (ID: ${comment.id}) on issue #${issueNumber}`
+        `DRY RUN: would have deleted suggested settings comment (ID: ${comment.id}) on issue #${issueNumber}`,
       );
     } else {
       await octokit.issues.deleteComment({
@@ -375,7 +431,7 @@ async function removeSuggestedSettingsComment(owner, repo, issueNumber) {
         comment_id: comment.id,
       });
       console.log(
-        `Deleted suggested settings comment (ID: ${comment.id}) on issue #${issueNumber}`
+        `Deleted suggested settings comment (ID: ${comment.id}) on issue #${issueNumber}`,
       );
     }
   }
@@ -386,7 +442,7 @@ async function removeOcrGeneratedContentLabel(owner, repo, issueNumber) {
   try {
     if (dryRun) {
       console.log(
-        `DRY RUN: would have removed label "${ocrGeneratedContentLabel}" from issue #${issueNumber}`
+        `DRY RUN: would have removed label "${ocrGeneratedContentLabel}" from issue #${issueNumber}`,
       );
     } else {
       await octokit.issues.removeLabel({
@@ -396,7 +452,7 @@ async function removeOcrGeneratedContentLabel(owner, repo, issueNumber) {
         name: ocrGeneratedContentLabel,
       });
       console.log(
-        `Removed label "${ocrGeneratedContentLabel}" from issue #${issueNumber}`
+        `Removed label "${ocrGeneratedContentLabel}" from issue #${issueNumber}`,
       );
     }
   } catch (error) {
@@ -419,12 +475,12 @@ async function processIssue(owner, repo, issue) {
   // Build object based on extracted values
   const reportData = buildReportData(
     initialUpdatedBody,
-    validate.schema.properties
+    validate.schema.properties,
   );
 
   // Fetch "Game Display Settings" content and check if it is empty after normalisation
   const displayContent = generateReportSectionMarkdown(
-    reportData["Game Display Settings"]
+    reportData["Game Display Settings"],
   );
   const displayEmpty = hasEmpty(displayContent);
 
@@ -432,14 +488,14 @@ async function processIssue(owner, repo, issue) {
   if (!displayEmpty && initialMovedCount > 0) {
     // Only save moved images - the "Game Display Settings" section already has config content
     console.log(
-      `Updating issue body but skipping screenshot text extraction for issue #${issue.number} as "Game Display Settings" is already filled.`
+      `Updating issue body but skipping screenshot text extraction for issue #${issue.number} as "Game Display Settings" is already filled.`,
     );
     await updateIssueBody(
       owner,
       repo,
       issue.number,
       initialUpdatedBody,
-      initialMovedCount
+      initialMovedCount,
     );
     // Clean up
     await removeSuggestedSettingsComment(owner, repo, issue.number);
@@ -450,7 +506,7 @@ async function processIssue(owner, repo, issue) {
   } else if (!displayEmpty) {
     // No images moved and Display is filled -> nothing to do
     console.log(
-      `Skipping screenshot text extraction for issue #${issue.number} as "Game Display Settings" is already filled.`
+      `Skipping screenshot text extraction for issue #${issue.number} as "Game Display Settings" is already filled.`,
     );
     // Clean up
     await removeSuggestedSettingsComment(owner, repo, issue.number);
@@ -460,7 +516,7 @@ async function processIssue(owner, repo, issue) {
     return;
   } else {
     console.log(
-      `The "Game Display Settings" in issue #${issue.number} is empty after normalisation. Checking for images to parse...`
+      `The "Game Display Settings" in issue #${issue.number} is empty after normalisation. Checking for images to parse...`,
     );
   }
 
@@ -472,7 +528,7 @@ async function processIssue(owner, repo, issue) {
     return;
   }
   console.log(
-    `Found ${imageUrls.length} image URL(s) in issue #${issue.number}`
+    `Found ${imageUrls.length} image URL(s) in issue #${issue.number}`,
   );
 
   // Use OCR service to read Game settings from the screenshots
@@ -481,7 +537,7 @@ async function processIssue(owner, repo, issue) {
   // Update original body with parsed settings and migrate images to end of "Additional Notes" section
   const { body: updatedBody, movedCount } = rewriteIssueBodyWithSettings(
     originalBody,
-    settings
+    settings,
   );
   await updateIssueBody(owner, repo, issue.number, updatedBody, movedCount);
 
