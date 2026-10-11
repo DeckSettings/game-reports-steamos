@@ -139,6 +139,18 @@
             "max_gpu_clk": 1600
         },
         {
+            "name": "Valve Steam Machine",
+            "aliases": [
+                "Steam Machine"
+            ],
+            "battery_size_wh": 0,
+            "max_display_resolution": "7680x4320",
+            "max_refresh_rate": 240,
+            "supports_vrr": true,
+            "max_tdp_w": 110,
+            "max_gpu_clk": 2450
+        },
+        {
             "name": "Zotac Zone",
             "battery_size_wh": 48,
             "max_display_resolution": "1920x1080",
