@@ -85,6 +85,11 @@
         "description": "^(Valve )?Steam Deck( OLED| LCD.*)?$"
     },
     {
+        "name": "DEVICE: Valve Steam Machine",
+        "color": "FFFFFF",
+        "description": "^(Valve )?Steam Machine$"
+    },
+    {
         "name": "DEVICE: Zotac Zone",
         "color": "FFFFFF",
         "description": "^(Zotac Zone)$"

@@ -190,6 +190,7 @@ body:
         - Valve Steam Deck LCD (64GB)
         - Valve Steam Deck LCD (256GB/512GB)
         - Valve Steam Deck OLED
+        - Valve Steam Machine
       default: 1
     validations:
       required: true
